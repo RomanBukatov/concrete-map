@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <!-- Драйвер Postgres -->
+    <PackageReference Include="EPPlus" Version="8.3.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <!-- Инструменты EF Core (версии 9.x, чтобы не было конфликта) -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.2">

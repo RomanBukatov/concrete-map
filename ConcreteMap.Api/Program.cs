@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ConcreteMap.Infrastructure.Data;
+using ConcreteMap.Infrastructure.Services;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -7,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddScoped<ExcelImportService>();
 
 // Add services to the container.
 
