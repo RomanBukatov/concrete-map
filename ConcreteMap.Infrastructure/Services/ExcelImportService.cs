@@ -16,58 +16,65 @@ namespace ConcreteMap.Infrastructure.Services
             _context = context;
         }
 
-        // Статический конструктор УДАЛЕН, так как лицензия теперь в appsettings.json
-
-        public async Task<int> ImportFactoriesAsync(Stream fileStream)
+    public async Task<int> ImportFactoriesAsync(Stream fileStream)
+    {
+        try
         {
-            try
+            using var package = new ExcelPackage(fileStream);
+            if (package.Workbook.Worksheets.Count == 0)
+                throw new Exception("Excel файл не содержит листов.");
+
+            var worksheet = package.Workbook.Worksheets[0];
+            int count = 0;
+
+            // МАППИНГ ПО СКРИНШОТУ:
+            // A(1) - №
+            // B(2) - IsVip
+            // C(3) - Name
+            // D(4) - Phone
+            // E(5) - Address
+            // F(6) - ProductCategories (Основная продукция)
+            // G(7) - VIP Продукция (пропускаем)
+            // H(8) - Вся продукция (Берем в Comment, это полезно для поиска!)
+            // I(9) - Комментарий (там часто пусто)
+            // J(10) - Сайт (PriceUrl)
+            // K(11) - Прайс
+            // L(12) - Latitude
+            // M(13) - Longitude
+
+            for (int row = 2; worksheet.Cells[row, 3].Value != null; row++)
             {
-                using var package = new ExcelPackage(fileStream);
-                
-                if (package.Workbook.Worksheets.Count == 0)
-                    throw new Exception("Excel файл не содержит листов.");
-
-                var worksheet = package.Workbook.Worksheets[0];
-                int count = 0;
-
-                // Начинаем со 2-й строки
-                for (int row = 2; worksheet.Cells[row, 1].Value != null; row++)
+                var factory = new Factory
                 {
-                    var factory = new Factory
-                    {
-                        // Col 1: IsVip
-                        IsVip = worksheet.Cells[row, 1].Text?.Trim().Equals("Да", StringComparison.OrdinalIgnoreCase) ?? false,
-                        // Col 2: Name
-                        Name = worksheet.Cells[row, 2].Text?.Trim() ?? "Без названия",
-                        // Col 3: Phone
-                        Phone = worksheet.Cells[row, 3].Text?.Trim(),
-                        // Col 4: Address
-                        Address = worksheet.Cells[row, 4].Text?.Trim(),
-                        // Col 5: ProductCategories
-                        ProductCategories = worksheet.Cells[row, 5].Text?.Trim(),
-                        // Col 6: Comment
-                        Comment = worksheet.Cells[row, 6].Text?.Trim(),
-                        // Col 7: PriceUrl
-                        PriceUrl = worksheet.Cells[row, 7].Text?.Trim(),
-                        // Col 8: Latitude
-                        Latitude = ParseDouble(worksheet.Cells[row, 8].Text),
-                        // Col 9: Longitude
-                        Longitude = ParseDouble(worksheet.Cells[row, 9].Text)
-                    };
+                    IsVip = worksheet.Cells[row, 2].Text?.Trim().Equals("Да", StringComparison.OrdinalIgnoreCase) ?? false,
+                    Name = worksheet.Cells[row, 3].Text?.Trim() ?? "Без названия",
+                    Phone = worksheet.Cells[row, 4].Text?.Trim(),
+                    Address = worksheet.Cells[row, 5].Text?.Trim(),
+                    ProductCategories = worksheet.Cells[row, 6].Text?.Trim(),
                     
-                    _context.Factories.Add(factory);
-                    count++;
-                }
+                    // Берем "Вся продукция" (H=8), так как там полный список для клиента
+                    Comment = worksheet.Cells[row, 8].Text?.Trim(), 
+                    
+                    // Сайт (J=10)
+                    PriceUrl = worksheet.Cells[row, 10].Text?.Trim(),
+                    
+                    // Координаты (L=12, M=13)
+                    Latitude = ParseDouble(worksheet.Cells[row, 12].Text),
+                    Longitude = ParseDouble(worksheet.Cells[row, 13].Text)
+                };
+                
+                _context.Factories.Add(factory);
+                count++;
+            }
 
-                await _context.SaveChangesAsync();
-                return count;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Ошибка импорта: {ex.Message}", ex);
-            }
+            await _context.SaveChangesAsync();
+            return count;
         }
-
+        catch (Exception ex)
+        {
+            throw new Exception($"Ошибка импорта: {ex.Message}", ex);
+        }
+    }
         private double ParseDouble(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return 0;
