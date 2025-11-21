@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="ConcreteMap.Api/ConcreteMap.Api.csproj" />
+  <Project Path="ConcreteMap.Domain/ConcreteMap.Domain.csproj" />
+  <Project Path="ConcreteMap.Infrastructure/ConcreteMap.Infrastructure.csproj" />
+</Solution>
