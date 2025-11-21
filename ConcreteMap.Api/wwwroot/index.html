@@ -1,0 +1,24 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Карта ЖБИ Заводов</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Подключение Яндекс Карт. Если есть ключ - вставь вместо 'ваш_ключ'. Если нет - оставь так, будет работать демо -->
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=ваш_api_ключ&lang=ru_RU" type="text/javascript"></script>
+</head>
+<body>
+
+    <!-- Панель поиска -->
+    <div class="search-panel">
+        <input type="text" id="search-input" placeholder="Поиск (напр. Лотки, Люберцы)...">
+        <button id="search-btn">Найти</button>
+    </div>
+
+    <!-- Контейнер карты -->
+    <div id="map"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
