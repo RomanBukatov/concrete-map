@@ -1,10 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using ConcreteMap.Infrastructure.Data;
 using ConcreteMap.Infrastructure.Services;
+using Scalar.AspNetCore;
+using OfficeOpenXml;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Установка лицензии EPPlus глобально
+ExcelPackage.License.SetNonCommercialPersonal("Roman");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -23,6 +28,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
