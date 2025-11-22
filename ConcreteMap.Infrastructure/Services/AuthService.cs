@@ -54,6 +54,19 @@ public class AuthService
         return GenerateToken(user);
     }
 
+    public async Task ChangePasswordAsync(string username, string oldPassword, string newPassword)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        if (user == null)
+            throw new Exception("Пользователь не найден");
+
+        if (!BCrypt.Net.BCrypt.Verify(oldPassword, user.PasswordHash))
+            throw new Exception("Неверный текущий пароль");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        await _context.SaveChangesAsync();
+    }
+
     private string GenerateToken(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));
