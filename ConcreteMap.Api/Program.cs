@@ -3,6 +3,10 @@ using ConcreteMap.Infrastructure.Data;
 using ConcreteMap.Infrastructure.Services;
 using Scalar.AspNetCore;
 using OfficeOpenXml;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -16,13 +20,42 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddScoped<ExcelImportService>();
 
+// Регистрация AuthService
+builder.Services.AddScoped<AuthService>();
+
 // Add services to the container.
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+// Настройка JWT
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+            ValidAudience = builder.Configuration["JwtSettings:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]))
+        };
+    });
+
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    // Применяем миграции автоматически (удобно для докера)
+    dbContext.Database.Migrate();
+    // Создаем админа
+    await DbSeeder.SeedUsers(dbContext);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -33,7 +66,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
+// ВАЖНО: Порядок имеет значение!
+app.UseAuthentication(); // <-- Добавить это
+app.UseAuthorization();  // Это уже было, оставить
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
