@@ -16,6 +16,7 @@ namespace ConcreteMap.Api.Controllers
             _authService = authService;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
