@@ -7,10 +7,17 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog();
 
 // Установка лицензии EPPlus глобально
 ExcelPackage.License.SetNonCommercialPersonal("Roman");

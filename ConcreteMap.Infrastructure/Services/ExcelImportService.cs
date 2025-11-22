@@ -6,20 +6,24 @@ using OfficeOpenXml;
 using ConcreteMap.Domain.Entities;
 using ConcreteMap.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ConcreteMap.Infrastructure.Services
 {
     public class ExcelImportService
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<ExcelImportService> _logger;
 
-        public ExcelImportService(ApplicationDbContext context)
+        public ExcelImportService(ApplicationDbContext context, ILogger<ExcelImportService> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<int> ImportFactoriesAsync(Stream fileStream)
         {
+            _logger.LogInformation("Начало импорта Excel файла");
             try
             {
                 // 1. Попытка открыть Excel (Валидация формата файла)
@@ -71,10 +75,12 @@ namespace ConcreteMap.Infrastructure.Services
                 }
 
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Импорт завершен. Добавлено {Count} записей", count);
                 return count;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Ошибка при импорте");
                 // Если это наша ошибка валидации - прокидываем сообщение
                 if (ex.Message.Contains("Неверная структура") || ex.Message.Contains("Файл пустой")) 
                     throw;
