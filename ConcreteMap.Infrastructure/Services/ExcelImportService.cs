@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using OfficeOpenXml;
 using ConcreteMap.Domain.Entities;
 using ConcreteMap.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace ConcreteMap.Infrastructure.Services
 {
@@ -21,39 +22,36 @@ namespace ConcreteMap.Infrastructure.Services
         {
             try
             {
+                // 1. Попытка открыть Excel (Валидация формата файла)
                 using var package = new ExcelPackage(fileStream);
                 if (package.Workbook.Worksheets.Count == 0)
-                    throw new Exception("Excel файл не содержит листов.");
+                    throw new Exception("Файл пустой или не является корректным Excel (.xlsx)");
 
                 var worksheet = package.Workbook.Worksheets[0];
 
-                // 1. ВАЛИДАЦИЯ ЗАГОЛОВКОВ
-                var headerName = worksheet.Cells[1, 3].Text;
-                var headerLat = worksheet.Cells[1, 12].Text;
+                // 2. ВАЛИДАЦИЯ ЗАГОЛОВКОВ (Валидация структуры)
+                var headerName = worksheet.Cells[1, 3].Text;   // C
+                var headerLat = worksheet.Cells[1, 12].Text;   // L
 
                 if (!headerName.Contains("Наименование", StringComparison.OrdinalIgnoreCase) ||
                     !headerLat.Contains("Latitude", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new Exception("Неверный формат файла! Проверьте, что колонки не сдвинуты. Колонка C должна быть 'Наименование', L - 'Latitude'.");
+                    throw new Exception("Неверная структура файла! Проверьте заголовки: Колонка C должна быть 'Наименование', L - 'Latitude'.");
                 }
 
-                // 2. ЧТЕНИЕ ДАННЫХ
-                int count = 0;
+                // 3. ОЧИСТКА БАЗЫ (Только если проверки прошли успешно!)
+                // Используем TRUNCATE с CASCADE, чтобы очистить и заводы, и связанные продукты, и сбросить ID
+                await _context.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Factories\" RESTART IDENTITY CASCADE;");
 
-                // ИСПРАВЛЕНИЕ: Получаем номер последней строки в файле
+                // 4. ИМПОРТ НОВЫХ ДАННЫХ
+                int count = 0;
                 int lastRow = worksheet.Dimension?.End.Row ?? 0;
 
-                // Цикл идет строго до последней строки
                 for (int row = 2; row <= lastRow; row++)
                 {
-                    // Получаем имя
                     var name = worksheet.Cells[row, 3].Text?.Trim();
-
-                    // Если имя пустое — это пустая строка или "хвост" объединения. ПРОПУСКАЕМ (continue), но не выходим.
-                    if (string.IsNullOrWhiteSpace(name))
-                    {
-                        continue;
-                    }
+                    // Пропускаем пустые строки
+                    if (string.IsNullOrWhiteSpace(name)) continue;
 
                     var factory = new Factory
                     {
@@ -77,24 +75,26 @@ namespace ConcreteMap.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                if (ex.Message.Contains("Неверный формат")) throw;
-                throw new Exception($"Ошибка импорта: {ex.Message}", ex);
+                // Если это наша ошибка валидации - прокидываем сообщение
+                if (ex.Message.Contains("Неверная структура") || ex.Message.Contains("Файл пустой")) 
+                    throw;
+                
+                // Если EPPlus упал при открытии файла
+                if (ex is InvalidDataException || ex.Message.Contains("Corrupt"))
+                    throw new Exception("Файл поврежден или не является форматом .xlsx");
+
+                // Остальные ошибки
+                throw new Exception($"Системная ошибка импорта: {ex.Message}");
             }
         }
 
         private string? CleanUrl(string? rawUrl)
         {
             if (string.IsNullOrWhiteSpace(rawUrl)) return null;
-
             var url = rawUrl.Trim();
             var garbage = new[] { "нет", "-", "нету", "no", "none", "n/a", "нет пока" };
-
             if (garbage.Contains(url.ToLower())) return null;
-
-            if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-            {
-                return "https://" + url;
-            }
+            if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return "https://" + url;
             return url;
         }
 

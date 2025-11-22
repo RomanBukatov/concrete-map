@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в систему</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="login-wrapper">
+        <div class="login-card">
+            <h2>🔐 Вход</h2>
+            <div class="form-group"><input type="text" id="username" placeholder="Логин"></div>
+            <div class="form-group"><input type="password" id="password" placeholder="Пароль"></div>
+            <div class="form-group"><button id="login-btn" class="btn btn-primary">Войти</button></div>
+            <p id="error-msg" style="color: #dc3545; margin-top: 15px; font-size: 14px; min-height: 20px;"></p>
+            <div style="margin-top: 20px;">
+                <a href="index.html" style="text-decoration: none; color: #666; font-size: 14px;">← Вернуться на карту</a>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('login-btn');
+            const errorMsg = document.getElementById('error-msg');
+            btn.disabled = true; btn.textContent = "Вход..."; errorMsg.textContent = "";
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('jwt_token', data.token);
+                    window.location.href = 'admin.html';
+                } else {
+                    const errorData = await response.json();
+                    errorMsg.textContent = errorData.message || 'Неверный логин или пароль';
+                    btn.disabled = false; btn.textContent = "Войти";
+                }
+            } catch (error) { errorMsg.textContent = 'Ошибка сети'; btn.disabled = false; btn.textContent = "Войти"; }
+        });
+        document.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('login-btn').click(); });
+    </script>
+</body>
+</html>

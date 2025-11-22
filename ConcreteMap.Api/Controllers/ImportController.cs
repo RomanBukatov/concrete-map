@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ConcreteMap.Infrastructure.Services;
 
 namespace ConcreteMap.Api.Controllers
@@ -14,12 +15,14 @@ namespace ConcreteMap.Api.Controllers
             _service = service;
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("factories")]
         public async Task<IActionResult> ImportFactories(IFormFile file)
         {
             if (file == null || file.Length == 0)
             {
-                return BadRequest("Файл не выбран");
+                // Возвращаем JSON даже тут
+                return BadRequest(new { message = "Файл не выбран" });
             }
 
             try
@@ -30,7 +33,8 @@ namespace ConcreteMap.Api.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                // ВАЖНО: Возвращаем ошибку как JSON объект, чтобы JS мог её прочитать
+                return BadRequest(new { message = ex.Message });
             }
         }
     }
