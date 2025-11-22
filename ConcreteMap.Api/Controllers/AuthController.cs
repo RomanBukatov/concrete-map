@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ConcreteMap.Domain.Dtos;
 using ConcreteMap.Infrastructure.Services;
@@ -36,6 +37,22 @@ namespace ConcreteMap.Api.Controllers
             {
                 var token = await _authService.LoginAsync(dto);
                 return Ok(new { token });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            try
+            {
+                var username = User.Identity.Name;
+                await _authService.ChangePasswordAsync(username, dto.OldPassword, dto.NewPassword);
+                return Ok("Пароль успешно изменен");
             }
             catch (Exception ex)
             {
