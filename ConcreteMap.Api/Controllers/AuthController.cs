@@ -36,8 +36,8 @@ namespace ConcreteMap.Api.Controllers
         {
             try
             {
-                var token = await _authService.LoginAsync(dto);
-                return Ok(new { token });
+                var response = await _authService.LoginAsync(dto);
+                return Ok(response);
             }
             catch (Exception ex)
             {

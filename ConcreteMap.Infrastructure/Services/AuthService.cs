@@ -34,7 +34,7 @@ public class AuthService
             Username = dto.Username,
             PasswordHash = passwordHash,
             Role = "User",
-            IsApproved = false
+            IsApproved = true
         };
 
         _context.Users.Add(user);
@@ -42,7 +42,7 @@ public class AuthService
         return user;
     }
 
-    public async Task<string> LoginAsync(LoginDto dto)
+    public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
@@ -51,7 +51,13 @@ public class AuthService
         if (!user.IsApproved)
             throw new Exception("Аккаунт ожидает подтверждения администратора");
 
-        return GenerateToken(user);
+        var token = GenerateToken(user);
+        return new AuthResponseDto
+        {
+            Username = user.Username,
+            Token = token,
+            Role = user.Role
+        };
     }
 
     public async Task ChangePasswordAsync(string username, string oldPassword, string newPassword)

@@ -14,8 +14,9 @@
              <button id="logout-btn" class="btn btn-danger">Выйти</button>
         </div>
     </header>
+    
     <div class="admin-container">
-        <!-- Импорт -->
+        <!-- 1. Импорт -->
         <div class="upload-card" style="margin-bottom: 30px;">
             <span class="upload-icon">📂</span>
             <h2 style="margin-top: 0;">Импорт данных</h2>
@@ -24,9 +25,30 @@
             <button id="upload-btn" class="btn btn-primary" style="width: 200px;">Загрузить в базу</button>
             <div id="status-msg" class="status-box"></div>
         </div>
-        <!-- Смена пароля -->
+
+        <!-- 2. Добавить сотрудника -->
+        <div class="upload-card" style="margin-bottom: 30px;">
+            <span class="upload-icon">👤</span>
+            <h2 style="margin-top: 0;">Добавить сотрудника</h2>
+            <p style="color: #666; margin-bottom: 20px;">Создать учетную запись для менеджера</p>
+            
+            <div style="max-width: 300px; margin: 0 auto; text-align: left;">
+                <div class="form-group">
+                    <label style="font-size: 12px; font-weight: bold;">Логин</label>
+                    <input type="text" id="new-user-login" placeholder="manager" style="width: 100%;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size: 12px; font-weight: bold;">Пароль</label>
+                    <input type="text" id="new-user-pass" placeholder="secret123" style="width: 100%;">
+                </div>
+                <button id="create-user-btn" class="btn btn-primary" style="width: 100%;">Создать</button>
+                <div id="user-msg" class="status-box"></div>
+            </div>
+        </div>
+
+        <!-- 3. Смена пароля -->
         <div class="upload-card">
-            <h2 style="margin-top: 0; font-size: 18px;">🔐 Безопасность</h2>
+            <h2 style="margin-top: 0; font-size: 18px;">🔐 Сменить свой пароль</h2>
             <div style="max-width: 300px; margin: 0 auto; text-align: left;">
                 <div class="form-group">
                     <label style="font-size: 12px; font-weight: bold;">Текущий пароль</label>
@@ -36,64 +58,132 @@
                     <label style="font-size: 12px; font-weight: bold;">Новый пароль</label>
                     <input type="password" id="new-pass" placeholder="***" style="width: 100%;">
                 </div>
-                <button id="change-pass-btn" class="btn btn-primary" style="width: 100%;">Сменить пароль</button>
+                <button id="change-pass-btn" class="btn btn-primary" style="width: 100%;">Сохранить</button>
                 <div id="pass-msg" style="text-align: center; margin-top: 10px; font-size: 14px;"></div>
             </div>
         </div>
     </div>
+
     <script>
         const token = localStorage.getItem('jwt_token');
-        if (!token) window.location.href = 'login.html';
+        const role = localStorage.getItem('user_role');
 
+        // Если нет токена ИЛИ роль не Admin - выкидываем
+        if (!token || role !== 'Admin') {
+            window.location.href = 'index.html'; // Или на login.html
+        }
+
+        // Выход
         document.getElementById('logout-btn').addEventListener('click', () => {
             localStorage.removeItem('jwt_token'); window.location.href = 'login.html';
         });
 
+        // Импорт
         document.getElementById('upload-btn').addEventListener('click', async () => {
             const fileInput = document.getElementById('excel-file');
             const statusMsg = document.getElementById('status-msg');
             const btn = document.getElementById('upload-btn');
+            
             if (!fileInput.files[0]) { statusMsg.textContent = '⚠️ Выберите файл'; statusMsg.style.color = '#dc3545'; return; }
+            
             btn.disabled = true; btn.textContent = "Загрузка..."; statusMsg.textContent = "⏳ Обработка..."; statusMsg.style.color = "#007bff";
             const formData = new FormData(); formData.append('file', fileInput.files[0]);
+
             try {
                 const response = await fetch('/api/Import/factories', {
                     method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: formData
                 });
                 const data = await response.json();
-                if (response.ok) { statusMsg.textContent = `✅ Успешно! Импортировано: ${data.count} строк.`; statusMsg.style.color = "#28a745"; fileInput.value = ""; } 
-                else { throw new Error(data.message || 'Ошибка загрузки'); }
+                
+                if (response.ok) {
+                    statusMsg.textContent = `✅ Успешно! Импортировано: ${data.count} строк.`; statusMsg.style.color = "#28a745"; fileInput.value = "";
+                } else {
+                    throw new Error(data.message || 'Ошибка загрузки');
+                }
             } catch (error) {
                 statusMsg.textContent = `❌ ${error.message}`; statusMsg.style.color = '#dc3545';
                 if (error.message.includes("401")) { localStorage.removeItem('jwt_token'); window.location.href = 'login.html'; }
-            } finally { btn.disabled = false; btn.textContent = "Загрузить в базу"; }
+            } finally { 
+                btn.disabled = false; btn.textContent = "Загрузить в базу"; 
+            }
         });
 
+        // Создание юзера
+        document.getElementById('create-user-btn').addEventListener('click', async () => {
+            const login = document.getElementById('new-user-login').value;
+            const pass = document.getElementById('new-user-pass').value;
+            const msg = document.getElementById('user-msg');
+            const btn = document.getElementById('create-user-btn');
+
+            if (!login || !pass) { msg.textContent = "Заполните поля"; msg.style.color = "red"; return; }
+
+            btn.disabled = true;
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({ username: login, password: pass })
+                });
+                
+                if (response.ok) {
+                    msg.textContent = `✅ Сотрудник "${login}" создан!`; msg.style.color = "green";
+                    document.getElementById('new-user-login').value = "";
+                    document.getElementById('new-user-pass').value = "";
+                } else {
+                    const data = await response.text();
+                    msg.textContent = `❌ Ошибка: ${data}`; msg.style.color = "red";
+                }
+            } catch (error) {
+                msg.textContent = "Ошибка сети"; msg.style.color = "red";
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // Смена пароля
         document.getElementById('change-pass-btn').addEventListener('click', async () => {
             const oldPass = document.getElementById('old-pass').value;
             const newPass = document.getElementById('new-pass').value;
             const msg = document.getElementById('pass-msg');
             const btn = document.getElementById('change-pass-btn');
+
             if (!oldPass || !newPass) { msg.textContent = "Заполните все поля"; msg.style.color = "red"; return; }
+
             btn.disabled = true;
             try {
                 const response = await fetch('/api/auth/change-password', {
-                    method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json' 
+                    },
                     body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass })
                 });
+                
                 let data;
                 const contentType = response.headers.get("content-type");
                 if (contentType && contentType.indexOf("application/json") !== -1) {
                     const json = await response.json();
                     data = json.message || JSON.stringify(json);
-                } else { data = await response.text(); }
+                } else {
+                    data = await response.text();
+                }
 
                 if (response.ok) {
-                    msg.textContent = "✅ Пароль успешно изменен!"; msg.style.color = "green";
-                    document.getElementById('old-pass').value = ""; document.getElementById('new-pass').value = "";
-                } else { msg.textContent = `❌ ${data}`; msg.style.color = "red"; }
-            } catch (error) { msg.textContent = "Ошибка сети"; msg.style.color = "red"; } 
-            finally { btn.disabled = false; }
+                    msg.textContent = "✅ Пароль изменен!"; msg.style.color = "green";
+                    document.getElementById('old-pass').value = "";
+                    document.getElementById('new-pass').value = "";
+                } else {
+                    msg.textContent = `❌ ${data}`; msg.style.color = "red";
+                }
+            } catch (error) {
+                msg.textContent = "Ошибка сети"; msg.style.color = "red";
+            } finally {
+                btn.disabled = false;
+            }
         });
     </script>
 </body>
