@@ -1,6 +1,10 @@
 ﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
+    <script>
+        const token = localStorage.getItem('jwt_token');
+        if (!token) window.location.href = 'login.html';
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Карта ЖБИ Заводов</title>
@@ -15,26 +19,11 @@
     </div>
 
     <!-- Кнопка Входа (СПРАВА) -->
-    <a href="login.html" class="map-admin-btn" id="auth-btn">🔐 Вход</a>
+    <a href="admin.html" class="map-admin-btn">⚙️ Админка</a>
 
     <!-- Карта -->
     <div id="map"></div>
 
     <script src="js/app.js"></script>
-    <script>
-        // Проверка авторизации при загрузке карты
-        document.addEventListener("DOMContentLoaded", () => {
-            const token = localStorage.getItem('jwt_token');
-            const btn = document.getElementById('auth-btn');
-
-            if (token) {
-                // Если токен есть - ведем сразу в админку
-                btn.innerHTML = "⚙️ Админка";
-                btn.href = "admin.html";
-                // Можно добавить стиль, чтобы выделить кнопку
-                btn.style.color = "#007bff";
-            }
-        });
-    </script>
 </body>
 </html>

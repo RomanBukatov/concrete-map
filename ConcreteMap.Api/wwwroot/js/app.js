@@ -8,7 +8,10 @@ startApp();
 async function startApp() {
     try {
         // 1. Получаем ключ с сервера
-        const response = await fetch('/api/Config/map-key');
+        const token = localStorage.getItem('jwt_token');
+        const response = await fetch('/api/Config/map-key', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
         if (!response.ok) throw new Error('Ошибка получения конфига');
         
         const data = await response.json();
@@ -66,7 +69,11 @@ function init() {
 // Функция загрузки всех заводов
 async function loadFactories() {
     try {
-        const response = await fetch('/api/Factories');
+        const token = localStorage.getItem('jwt_token');
+        const response = await fetch('/api/Factories', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (response.status === 401) window.location.href = 'login.html';
         const data = await response.json();
         renderPins(data);
     } catch (error) {
@@ -81,7 +88,11 @@ async function searchFactories() {
     const url = query ? `/api/Factories/search?q=${encodeURIComponent(query)}` : '/api/Factories';
 
     try {
-        const response = await fetch(url);
+        const token = localStorage.getItem('jwt_token');
+        const response = await fetch(url, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (response.status === 401) window.location.href = 'login.html';
         const data = await response.json();
         renderPins(data);
     } catch (error) {
