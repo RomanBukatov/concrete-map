@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ-панель</title>
+    <title>Личный кабинет</title>
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <header class="admin-header">
-        <h1>🛠️ Панель управления</h1>
+        <h1 id="page-title">🛠️ Панель управления</h1>
         <div style="display:flex; gap:10px;">
              <a href="index.html" target="_blank" class="btn" style="background: #e9ecef; color: #333; text-decoration: none;">🌍 Открыть карту</a>
              <button id="logout-btn" class="btn btn-danger">Выйти</button>
@@ -16,8 +16,8 @@
     </header>
     
     <div class="admin-container">
-        <!-- 1. Импорт -->
-        <div class="upload-card" style="margin-bottom: 30px;">
+        <!-- 1. Импорт (Только Админ) -->
+        <div id="card-import" class="upload-card" style="margin-bottom: 30px;">
             <span class="upload-icon">📂</span>
             <h2 style="margin-top: 0;">Импорт данных</h2>
             <p style="color: #666; margin-bottom: 20px;">Загрузите обновленный Excel файл с заводами</p>
@@ -26,12 +26,11 @@
             <div id="status-msg" class="status-box"></div>
         </div>
 
-        <!-- 2. Добавить сотрудника -->
-        <div class="upload-card" style="margin-bottom: 30px;">
+        <!-- 2. Добавить сотрудника (Только Админ) -->
+        <div id="card-users" class="upload-card" style="margin-bottom: 30px;">
             <span class="upload-icon">👤</span>
             <h2 style="margin-top: 0;">Добавить сотрудника</h2>
             <p style="color: #666; margin-bottom: 20px;">Создать учетную запись для менеджера</p>
-            
             <div style="max-width: 300px; margin: 0 auto; text-align: left;">
                 <div class="form-group">
                     <label style="font-size: 12px; font-weight: bold;">Логин</label>
@@ -46,8 +45,8 @@
             </div>
         </div>
 
-        <!-- 3. Смена пароля -->
-        <div class="upload-card">
+        <!-- 3. Смена пароля (Для всех) -->
+        <div id="card-password" class="upload-card">
             <h2 style="margin-top: 0; font-size: 18px;">🔐 Сменить свой пароль</h2>
             <div style="max-width: 300px; margin: 0 auto; text-align: left;">
                 <div class="form-group">
@@ -68,123 +67,99 @@
         const token = localStorage.getItem('jwt_token');
         const role = localStorage.getItem('user_role');
 
-        // Если нет токена ИЛИ роль не Admin - выкидываем
-        if (!token || role !== 'Admin') {
-            window.location.href = 'index.html'; // Или на login.html
+        if (!token) window.location.href = 'login.html';
+
+        // Логика отображения по ролям
+        if (role !== 'Admin') {
+            // Скрываем админские блоки
+            document.getElementById('card-import').style.display = 'none';
+            document.getElementById('card-users').style.display = 'none';
+            // Меняем заголовок
+            document.getElementById('page-title').textContent = '👤 Личный кабинет';
         }
 
-        // Выход
+        // --- Обработчики событий ---
+
         document.getElementById('logout-btn').addEventListener('click', () => {
-            localStorage.removeItem('jwt_token'); window.location.href = 'login.html';
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('user_role'); // Не забываем чистить роль
+            window.location.href = 'login.html';
         });
 
-        // Импорт
+        // Логика импорта (Сработает только у Админа, даже если юзер раскроет HTML, сервер не пустит)
         document.getElementById('upload-btn').addEventListener('click', async () => {
             const fileInput = document.getElementById('excel-file');
             const statusMsg = document.getElementById('status-msg');
             const btn = document.getElementById('upload-btn');
-            
             if (!fileInput.files[0]) { statusMsg.textContent = '⚠️ Выберите файл'; statusMsg.style.color = '#dc3545'; return; }
-            
             btn.disabled = true; btn.textContent = "Загрузка..."; statusMsg.textContent = "⏳ Обработка..."; statusMsg.style.color = "#007bff";
             const formData = new FormData(); formData.append('file', fileInput.files[0]);
-
             try {
                 const response = await fetch('/api/Import/factories', {
                     method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: formData
                 });
                 const data = await response.json();
-                
-                if (response.ok) {
-                    statusMsg.textContent = `✅ Успешно! Импортировано: ${data.count} строк.`; statusMsg.style.color = "#28a745"; fileInput.value = "";
-                } else {
-                    throw new Error(data.message || 'Ошибка загрузки');
-                }
+                if (response.ok) { statusMsg.textContent = `✅ Успешно! Импортировано: ${data.count} строк.`; statusMsg.style.color = "#28a745"; fileInput.value = ""; } 
+                else { throw new Error(data.message || 'Ошибка загрузки'); }
             } catch (error) {
                 statusMsg.textContent = `❌ ${error.message}`; statusMsg.style.color = '#dc3545';
-                if (error.message.includes("401")) { localStorage.removeItem('jwt_token'); window.location.href = 'login.html'; }
-            } finally { 
-                btn.disabled = false; btn.textContent = "Загрузить в базу"; 
-            }
+                if (error.message.includes("401")) { logout(); }
+            } finally { btn.disabled = false; btn.textContent = "Загрузить в базу"; }
         });
 
-        // Создание юзера
+        // Логика создания юзера
         document.getElementById('create-user-btn').addEventListener('click', async () => {
             const login = document.getElementById('new-user-login').value;
             const pass = document.getElementById('new-user-pass').value;
             const msg = document.getElementById('user-msg');
             const btn = document.getElementById('create-user-btn');
-
             if (!login || !pass) { msg.textContent = "Заполните поля"; msg.style.color = "red"; return; }
-
             btn.disabled = true;
             try {
                 const response = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: { 
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json' 
-                    },
+                    method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: login, password: pass })
                 });
-                
+                const data = await response.text(); // или json, зависит от контроллера
                 if (response.ok) {
                     msg.textContent = `✅ Сотрудник "${login}" создан!`; msg.style.color = "green";
-                    document.getElementById('new-user-login').value = "";
-                    document.getElementById('new-user-pass').value = "";
-                } else {
-                    const data = await response.text();
-                    msg.textContent = `❌ Ошибка: ${data}`; msg.style.color = "red";
-                }
-            } catch (error) {
-                msg.textContent = "Ошибка сети"; msg.style.color = "red";
-            } finally {
-                btn.disabled = false;
-            }
+                    document.getElementById('new-user-login').value = ""; document.getElementById('new-user-pass').value = "";
+                } else { msg.textContent = `❌ Ошибка: ${data}`; msg.style.color = "red"; }
+            } catch (error) { msg.textContent = "Ошибка сети"; msg.style.color = "red"; } 
+            finally { btn.disabled = false; }
         });
 
-        // Смена пароля
+        // Логика смены пароля
         document.getElementById('change-pass-btn').addEventListener('click', async () => {
             const oldPass = document.getElementById('old-pass').value;
             const newPass = document.getElementById('new-pass').value;
             const msg = document.getElementById('pass-msg');
             const btn = document.getElementById('change-pass-btn');
-
             if (!oldPass || !newPass) { msg.textContent = "Заполните все поля"; msg.style.color = "red"; return; }
-
             btn.disabled = true;
             try {
                 const response = await fetch('/api/auth/change-password', {
-                    method: 'POST',
-                    headers: { 
-                        'Authorization': 'Bearer ' + token,
-                        'Content-Type': 'application/json' 
-                    },
+                    method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ oldPassword: oldPass, newPassword: newPass })
                 });
-                
                 let data;
                 const contentType = response.headers.get("content-type");
                 if (contentType && contentType.indexOf("application/json") !== -1) {
                     const json = await response.json();
                     data = json.message || JSON.stringify(json);
-                } else {
-                    data = await response.text();
-                }
+                } else { data = await response.text(); }
 
                 if (response.ok) {
-                    msg.textContent = "✅ Пароль изменен!"; msg.style.color = "green";
-                    document.getElementById('old-pass').value = "";
-                    document.getElementById('new-pass').value = "";
-                } else {
-                    msg.textContent = `❌ ${data}`; msg.style.color = "red";
-                }
-            } catch (error) {
-                msg.textContent = "Ошибка сети"; msg.style.color = "red";
-            } finally {
-                btn.disabled = false;
-            }
+                    msg.textContent = "✅ Пароль успешно изменен!"; msg.style.color = "green";
+                    document.getElementById('old-pass').value = ""; document.getElementById('new-pass').value = "";
+                } else { msg.textContent = `❌ ${data}`; msg.style.color = "red"; }
+            } catch (error) { msg.textContent = "Ошибка сети"; msg.style.color = "red"; } 
+            finally { btn.disabled = false; }
         });
+
+        function logout() {
+            localStorage.removeItem('jwt_token'); localStorage.removeItem('user_role'); window.location.href = 'login.html';
+        }
     </script>
 </body>
 </html>

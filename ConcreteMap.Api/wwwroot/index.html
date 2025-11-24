@@ -8,20 +8,14 @@
         document.addEventListener("DOMContentLoaded", () => {
             const role = localStorage.getItem('user_role');
             const btn = document.getElementById('top-btn');
-            
+
+            // Теперь кнопка всегда ведет в админку/кабинет
+            btn.href = "admin.html";
+
             if (role === 'Admin') {
-                btn.href = "admin.html";
                 btn.innerHTML = "⚙️ Админка";
             } else {
-                // Если это обычный сотрудник - кнопка работает как Выход
-                btn.href = "#";
-                btn.innerHTML = "🚪 Выйти";
-                btn.onclick = (e) => {
-                    e.preventDefault();
-                    localStorage.removeItem('jwt_token');
-                    localStorage.removeItem('user_role');
-                    window.location.href = 'login.html';
-                };
+                btn.innerHTML = "👤 Кабинет";
             }
         });
     </script>
