@@ -27,6 +27,9 @@ namespace ConcreteMap.Infrastructure.Data
                 .HasIndex(p => p.Name)
                 .HasMethod("gin")
                 .HasOperators("gin_trgm_ops");
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
         }
     }
 }
