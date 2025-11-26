@@ -7,43 +7,66 @@ startApp();
 
 async function startApp() {
     try {
-        // 1. Получаем ключ с сервера
         const token = localStorage.getItem('jwt_token');
+        
+        // Если токена нет локально
+        if (!token) {
+            handleAuthError();
+            return;
+        }
+
+        // Запрашиваем ключ карт (это заодно проверяет валидность токена на сервере)
         const response = await fetch('/api/Config/map-key', {
             headers: { 'Authorization': 'Bearer ' + token }
         });
-        if (!response.ok) throw new Error('Ошибка получения конфига');
+
+        // ВАЖНО: Если сервер ответил 401 (Unauthorized) - сразу выходим
+        if (response.status === 401) {
+            console.warn("Токен невалиден (401). Редирект.");
+            handleAuthError();
+            return;
+        }
+
+        // Если другая ошибка сервера
+        if (!response.ok) {
+            console.error("Ошибка сервера:", response.status);
+            // Не показываем алерт, просто кидаем на логин, так безопаснее для UX
+            handleAuthError(); 
+            return;
+        }
         
         const data = await response.json();
-        const apiKey = data.key || ''; // Если ключа нет, будет демо-режим
+        const apiKey = data.key || ''; 
 
-        // 2. Динамически загружаем скрипт Яндекс Карт
+        // Грузим Яндекс Карты
         const script = document.createElement('script');
         script.src = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU`;
         script.type = 'text/javascript';
         
-        // Когда скрипт загрузится - инициализируем карту
         script.onload = () => {
             ymaps.ready(init);
         };
         
+        script.onerror = () => {
+            console.error("Не удалось загрузить скрипт Яндекс.Карт");
+        };
+
         document.head.appendChild(script);
 
     } catch (error) {
-        console.error('Critical Error:', error);
-        alert('Ошибка инициализации приложения');
+        console.error('Critical Init Error:', error);
+        // Если упало по сети или другой причине - всё равно кидаем на логин
+        handleAuthError();
     }
 }
 
 function init() {
-    // 1. Создаем карту
     myMap = new ymaps.Map("map", {
-        center: [55.751574, 37.573856], // Центр (Москва)
+        center: [55.751574, 37.573856],
         zoom: 7,
         controls: ['zoomControl', 'fullscreenControl']
     });
 
-    // 2. Создаем кластеризатор
     clusterer = new ymaps.Clusterer({
         preset: 'islands#invertedVioletClusterIcons',
         groupByCoordinates: false,
@@ -54,35 +77,35 @@ function init() {
 
     myMap.geoObjects.add(clusterer);
 
-    // 3. Загружаем данные
     loadFactories();
 
-    // 4. Настраиваем UI
     document.getElementById('search-btn').addEventListener('click', searchFactories);
     document.getElementById('search-input').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') {
-            searchFactories();
-        }
+        if (e.key === 'Enter') searchFactories();
     });
 }
 
-// Функция загрузки всех заводов
 async function loadFactories() {
     try {
         const token = localStorage.getItem('jwt_token');
         const response = await fetch('/api/Factories', {
             headers: { 'Authorization': 'Bearer ' + token }
         });
-        if (response.status === 401) window.location.href = 'login.html';
-        const data = await response.json();
-        renderPins(data);
+        
+        if (response.status === 401) {
+            handleAuthError();
+            return;
+        }
+
+        if (response.ok) {
+            const data = await response.json();
+            renderPins(data);
+        }
     } catch (error) {
         console.error("Ошибка загрузки данных:", error);
-        alert("Не удалось загрузить список заводов.");
     }
 }
 
-// Функция поиска
 async function searchFactories() {
     const query = document.getElementById('search-input').value;
     const url = query ? `/api/Factories/search?q=${encodeURIComponent(query)}` : '/api/Factories';
@@ -92,15 +115,21 @@ async function searchFactories() {
         const response = await fetch(url, {
             headers: { 'Authorization': 'Bearer ' + token }
         });
-        if (response.status === 401) window.location.href = 'login.html';
-        const data = await response.json();
-        renderPins(data);
+
+        if (response.status === 401) {
+            handleAuthError();
+            return;
+        }
+
+        if (response.ok) {
+            const data = await response.json();
+            renderPins(data);
+        }
     } catch (error) {
         console.error("Ошибка поиска:", error);
     }
 }
 
-// Функция отрисовки меток
 function renderPins(factories) {
     clusterer.removeAll();
     const geoObjects = [];
@@ -136,4 +165,11 @@ function renderPins(factories) {
     if (geoObjects.length > 0) {
         myMap.setBounds(clusterer.getBounds(), { checkZoomRange: true });
     }
+}
+
+function handleAuthError() {
+    // Удаляем всё и редиректим. Никаких алертов!
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('user_role');
+    window.location.href = 'login.html';
 }

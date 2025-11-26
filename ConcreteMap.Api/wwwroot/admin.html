@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Личный кабинет</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -24,6 +25,8 @@
             <div style="margin-bottom: 20px;"><input type="file" id="excel-file" accept=".xlsx" class="btn"></div>
             <button id="upload-btn" class="btn btn-primary" style="width: 200px;">Загрузить в базу</button>
             <div id="status-msg" class="status-box"></div>
+            <hr>
+            <button id="export-btn" class="btn" style="width: 100%; background: #28a745; color: white; margin-top: 10px;">📥 Скачать текущую базу</button>
         </div>
 
         <!-- 2. Добавить сотрудника (Только Админ) -->
@@ -99,12 +102,44 @@
                     method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: formData
                 });
                 const data = await response.json();
-                if (response.ok) { statusMsg.textContent = `✅ Успешно! Импортировано: ${data.count} строк.`; statusMsg.style.color = "#28a745"; fileInput.value = ""; } 
+                if (response.ok) { statusMsg.textContent = `✅ Успешно! Импортировано: ${data.count} строк.`; statusMsg.style.color = "#28a745"; fileInput.value = ""; }
                 else { throw new Error(data.message || 'Ошибка загрузки'); }
             } catch (error) {
                 statusMsg.textContent = `❌ ${error.message}`; statusMsg.style.color = '#dc3545';
                 if (error.message.includes("401")) { logout(); }
             } finally { btn.disabled = false; btn.textContent = "Загрузить в базу"; }
+        });
+
+        // Логика экспорта
+        document.getElementById('export-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('export-btn');
+            btn.disabled = true;
+            btn.textContent = "Скачивание...";
+
+            try {
+                const response = await fetch('/api/Export/factories', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = "factories_export.xlsx";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                } else {
+                    alert("Ошибка скачивания");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Ошибка сети");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "📥 Скачать текущую базу";
+            }
         });
 
         // Логика создания юзера

@@ -21,7 +21,6 @@ namespace ConcreteMap.Api.Controllers
         {
             if (file == null || file.Length == 0)
             {
-                // Возвращаем JSON даже тут
                 return BadRequest(new { message = "Файл не выбран" });
             }
 
