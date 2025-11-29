@@ -27,7 +27,7 @@ Fullstack-проект интерактивной карты с админист
 ### Инструкция
 1. **Клонируйте репозиторий:**
    ```bash
-   git clone https://github.com/твой-ник/concrete-map.git
+   git clone https://github.com/RomanBukatov/concrete-map.git
    cd concrete-map
    ```
 
