@@ -12,7 +12,7 @@ Fullstack-проект интерактивной карты с админист
 - **Контейнеризация:** Полная поддержка Docker и Docker Compose для быстрого развертывания.
 
 ## 🚀 Технологический стек
-- **Backend:** C# 12, .NET 10, ASP.NET Core Web API
+- **Backend:** C# 14, .NET 10, ASP.NET Core Web API
 - **База данных:** PostgreSQL 14 (с расширением `pg_trgm`)
 - **ORM:** Entity Framework Core 9
 - **Frontend:** HTML5, CSS3, Vanilla JavaScript (ES6+)
