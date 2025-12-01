@@ -1,8 +1,8 @@
 ﻿// Глобальные переменные
 let myMap;
 let clusterer;
+let allFactories = []; // Хранилище всех заводов
 
-// Точка входа
 startApp();
 
 async function startApp() {
@@ -79,55 +79,88 @@ function init() {
 
     loadFactories();
 
-    document.getElementById('search-btn').addEventListener('click', searchFactories);
-    document.getElementById('search-input').addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') searchFactories();
-    });
+    // Новые обработчики
+    document.getElementById('apply-filters-btn').addEventListener('click', applyFilters);
+    document.getElementById('reset-filters-btn').addEventListener('click', resetFilters);
 }
 
+// Загрузка всех заводов (немного изменена)
 async function loadFactories() {
     try {
         const token = localStorage.getItem('jwt_token');
         const response = await fetch('/api/Factories', {
             headers: { 'Authorization': 'Bearer ' + token }
         });
-        
-        if (response.status === 401) {
-            handleAuthError();
-            return;
-        }
+        if (response.status === 401) return handleAuthError();
 
         if (response.ok) {
-            const data = await response.json();
-            renderPins(data);
+            allFactories = await response.json();
+            populateFilters(allFactories); // Заполняем фильтры
+            renderPins(allFactories); // Отрисовываем всё
         }
-    } catch (error) {
-        console.error("Ошибка загрузки данных:", error);
-    }
+    } catch (error) { console.error("Ошибка загрузки данных:", error); }
 }
 
-async function searchFactories() {
-    const query = document.getElementById('search-input').value;
-    const url = query ? `/api/Factories/search?q=${encodeURIComponent(query)}` : '/api/Factories';
+// НОВАЯ ФУНКЦИЯ: Заполнение фильтров
+function populateFilters(factories) {
+    const cityFilter = document.getElementById('city-filter');
+    const categoryFilter = document.getElementById('category-filter');
 
-    try {
-        const token = localStorage.getItem('jwt_token');
-        const response = await fetch(url, {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
+    const cities = new Set();
+    const categories = new Set();
 
-        if (response.status === 401) {
-            handleAuthError();
-            return;
+    factories.forEach(f => {
+        // Парсим город (первое слово до запятой)
+        if (f.address) {
+            const cityMatch = f.address.split(',')[0].trim();
+            if (cityMatch) cities.add(cityMatch);
         }
-
-        if (response.ok) {
-            const data = await response.json();
-            renderPins(data);
+        // Парсим категории
+        if (f.productCategories) {
+            f.productCategories.split(',').forEach(cat => {
+                if(cat.trim()) categories.add(cat.trim());
+            });
         }
-    } catch (error) {
-        console.error("Ошибка поиска:", error);
+    });
+
+    cities.forEach(city => cityFilter.add(new Option(city, city)));
+    categories.forEach(cat => categoryFilter.add(new Option(cat, cat)));
+}
+
+// НОВАЯ ФУНКЦИЯ: Применение всех фильтров
+function applyFilters() {
+    const searchText = document.getElementById('search-input').value.toLowerCase();
+    const city = document.getElementById('city-filter').value;
+    const category = document.getElementById('category-filter').value;
+
+    let filteredFactories = allFactories;
+
+    // 1. Фильтр по городу
+    if (city) {
+        filteredFactories = filteredFactories.filter(f => f.address && f.address.startsWith(city));
     }
+    // 2. Фильтр по категории
+    if (category) {
+        filteredFactories = filteredFactories.filter(f => f.productCategories && f.productCategories.includes(category));
+    }
+    // 3. Фильтр по поиску
+    if (searchText) {
+        filteredFactories = filteredFactories.filter(f => 
+            (f.name && f.name.toLowerCase().includes(searchText)) ||
+            (f.comment && f.comment.toLowerCase().includes(searchText)) ||
+            (f.productCategories && f.productCategories.toLowerCase().includes(searchText))
+        );
+    }
+
+    renderPins(filteredFactories);
+}
+
+// НОВАЯ ФУНКЦИЯ: Сброс фильтров
+function resetFilters() {
+    document.getElementById('search-input').value = "";
+    document.getElementById('city-filter').value = "";
+    document.getElementById('category-filter').value = "";
+    renderPins(allFactories); // Показываем снова все
 }
 
 function renderPins(factories) {

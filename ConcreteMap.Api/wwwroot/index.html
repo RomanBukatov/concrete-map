@@ -4,39 +4,43 @@
     <script>
         const token = localStorage.getItem('jwt_token');
         if (!token) window.location.href = 'login.html';
-
         document.addEventListener("DOMContentLoaded", () => {
             const role = localStorage.getItem('user_role');
             const btn = document.getElementById('top-btn');
-
-            // Теперь кнопка всегда ведет в админку/кабинет
             btn.href = "admin.html";
-
-            if (role === 'Admin') {
-                btn.innerHTML = "⚙️ Админка";
-            } else {
-                btn.innerHTML = "👤 Кабинет";
-            }
+            btn.innerHTML = (role === 'Admin') ? "⚙️ Админка" : "👤 Кабинет";
         });
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Карта ЖБИ Заводов</title>
+    <title>Карта Заводов</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
-    <!-- Панель поиска (СЛЕВА) -->
-    <div class="search-panel">
-        <input type="text" id="search-input" placeholder="Поиск (напр. Лотки, Люберцы)...">
-        <button id="search-btn">Найти</button>
+    <div class="controls-panel">
+        <!-- Умный поиск -->
+        <div class="search-group">
+            <label>Поиск по названию/описанию:</label>
+            <input type="text" id="search-input" placeholder="например, Лотки, Люберцы...">
+        </div>
+        <!-- Фильтры -->
+        <div class="filter-group">
+            <label>Город:</label>
+            <select id="city-filter"><option value="">Все города</option></select>
+        </div>
+        <div class="filter-group">
+            <label>Основная продукция:</label>
+            <select id="category-filter"><option value="">Вся продукция</option></select>
+        </div>
+        <!-- Кнопки -->
+        <div class="button-group">
+            <button id="apply-filters-btn" class="btn btn-primary">Применить</button>
+            <button id="reset-filters-btn" class="btn" style="background: #6c757d; color: white;">Сбросить</button>
+        </div>
     </div>
 
-    <!-- Кнопка Входа (СПРАВА) -->
-    <a href="admin.html" class="map-admin-btn" id="top-btn">⚙️ Админка</a>
-
-    <!-- Карта -->
+    <a href="admin.html" class="map-admin-btn" id="top-btn"></a>
     <div id="map"></div>
 
     <script src="js/app.js"></script>

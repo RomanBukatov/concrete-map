@@ -68,3 +68,15 @@ input:focus { border-color: var(--primary-color); }
     color: var(--primary-color);
     transform: translateY(-1px);
 }
+
+.controls-panel {
+    position: absolute; top: 10px; left: 10px; z-index: 2000;
+    background: white; padding: 10px; border-radius: 8px; box-shadow: var(--card-shadow);
+    display: flex; align-items: flex-end; gap: 15px;
+}
+.search-group, .filter-group, .button-group { display: flex; flex-direction: column; }
+.controls-panel label { font-size: 12px; font-weight: 600; margin-bottom: 5px; color: #555; }
+.controls-panel input, .controls-panel select { 
+    padding: 8px; border-radius: 4px; border: 1px solid #ccc; width: 200px; 
+}
+.button-group { flex-direction: row; gap: 5px; }
