@@ -80,3 +80,73 @@ input:focus { border-color: var(--primary-color); }
     padding: 8px; border-radius: 4px; border: 1px solid #ccc; width: 200px; 
 }
 .button-group { flex-direction: row; gap: 5px; }
+
+/* === МОБИЛЬНАЯ АДАПТАЦИЯ === */
+
+@media (max-width: 768px) {
+    /* 1. Карта: Панель управления */
+    .controls-panel {
+        top: auto;          /* Отменяем верхнее позиционирование */
+        bottom: 0;          /* Прижимаем к низу экрана */
+        left: 0;
+        right: 0;
+        width: 100%;        /* На всю ширину */
+        border-radius: 12px 12px 0 0; /* Скругляем только верх */
+        flex-direction: column; /* Элементы в столбик */
+        align-items: stretch;   /* Растягиваем на всю ширину */
+        gap: 10px;
+        box-sizing: border-box; /* Чтобы padding не ломал ширину */
+        max-height: 50vh;   /* Чтобы не перекрыло всю карту */
+        overflow-y: auto;   /* Если не влезает - скролл */
+    }
+
+    .search-group, .filter-group {
+        width: 100%;
+    }
+
+    .controls-panel input, .controls-panel select {
+        width: 100%; /* Поля ввода на всю ширину */
+    }
+
+    .button-group {
+        width: 100%;
+        display: flex;
+        gap: 10px;
+    }
+
+    .button-group button {
+        flex: 1; /* Кнопки делят место поровну */
+        padding: 12px; /* Кнопки покрупнее для пальцев */
+    }
+
+    /* 2. Карта: Кнопка Админки */
+    .map-admin-btn {
+        top: 10px;
+        right: 10px; /* Чуть ближе к краю */
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    /* 3. Админка и Логин */
+    .admin-container, .login-card {
+        width: 95%; /* Отступы по краям */
+        padding: 15px;
+        margin: 10px auto;
+    }
+
+    .upload-card {
+        padding: 20px 15px;
+    }
+
+    .admin-header {
+        padding: 10px 15px;
+        flex-direction: column; /* Заголовок и кнопки в столбик */
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .admin-header div {
+        width: 100%;
+        justify-content: center;
+    }
+}
