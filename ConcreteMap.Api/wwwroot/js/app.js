@@ -30,7 +30,26 @@ function init() {
 
     loadFactories();
 
-    document.getElementById('apply-filters-btn').addEventListener('click', applyFilters);
+    const panel = document.getElementById('controls-panel');
+    const handler = document.getElementById('mobile-handler');
+    const handlerIcon = document.getElementById('mobile-handler-icon');
+
+    // Переключатель по клику на ручку
+    handler.addEventListener('click', () => {
+        panel.classList.toggle('collapsed');
+        const isCollapsed = panel.classList.contains('collapsed');
+        handlerIcon.textContent = isCollapsed ? "▲ Показать фильтры" : "▼ Скрыть фильтры";
+    });
+
+    // Обработчик кнопки "Применить"
+    document.getElementById('apply-filters-btn').addEventListener('click', () => {
+        applyFilters(); // Вызываем основную логику
+        // Если мобилка - сворачиваем панель
+        if (window.innerWidth <= 768) {
+            panel.classList.add('collapsed');
+            handlerIcon.textContent = "▲ Показать фильтры";
+        }
+    });
     document.getElementById('reset-filters-btn').addEventListener('click', resetFilters);
     
     // Живой поиск и фильтры
@@ -133,14 +152,50 @@ function applyFilters() {
 function renderPins(factories) {
     clusterer.removeAll();
     const geoObjects = [];
+
     factories.forEach(f => {
         if (!f.latitude || !f.longitude) return;
-        const color = f.isVip ? 'islands#redDotIcon' : 'islands#blueDotIcon';
-        const content = `<b>${f.name}</b><br><br>Продукция: ${f.productCategories || '-'}<br>${f.priceUrl ? `<a href="${f.priceUrl}" target="_blank">Сайт</a>` : ''}`;
-        geoObjects.push(new ymaps.Placemark([f.latitude, f.longitude], { balloonContent: content }, { preset: color }));
+
+        const iconColor = f.isVip ? 'islands#redDotIcon' : 'islands#blueDotIcon';
+
+        // Формируем красивый контент балуна
+        const balloonContent = `
+            <div style="font-size: 14px; line-height: 1.5; min-width: 200px;">
+                <strong style="font-size: 16px;">${f.name}</strong><br>
+                <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
+
+                ${f.isVip ? '<span style="color: red; font-weight: bold;">★ VIP Партнер</span><br>' : ''}
+
+                <b>Продукция:</b> ${f.productCategories || 'Нет данных'}<br>
+
+                ${f.phone ? `<b>Контакты:</b> ${f.phone}<br>` : ''}
+                ${f.address ? `<b>Адрес:</b> ${f.address}<br>` : ''}
+
+                ${f.priceUrl ? `<br><a href="${f.priceUrl}" target="_blank" style="color: #007bff; font-weight: bold;">Перейти на сайт / Прайс</a>` : ''}
+
+                ${f.comment ? `<br><br><small style="color: #666">Доп. инфо: ${f.comment}</small>` : ''}
+            </div>
+        `;
+
+        const placemark = new ymaps.Placemark(
+            [f.latitude, f.longitude],
+            {
+                balloonContent: balloonContent,
+                hintContent: f.name
+            },
+            { preset: iconColor }
+        );
+
+        geoObjects.push(placemark);
     });
+
     clusterer.add(geoObjects);
-    if (geoObjects.length) myMap.setBounds(clusterer.getBounds(), { checkZoomRange: true });
+
+    // Центрируем карту только при первой загрузке или поиске, если найдены объекты
+    if (geoObjects.length > 0) {
+        // Проверка, чтобы не дёргать карту лишний раз (опционально)
+         myMap.setBounds(clusterer.getBounds(), { checkZoomRange: true });
+    }
 }
 
 function resetFilters() {
