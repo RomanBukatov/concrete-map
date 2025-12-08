@@ -1,208 +1,155 @@
-﻿// Глобальные переменные
-let myMap;
+﻿let myMap;
 let clusterer;
-let allFactories = []; // Хранилище всех заводов
+let allFactories = [];
 
 startApp();
 
 async function startApp() {
     try {
         const token = localStorage.getItem('jwt_token');
-        
-        // Если токена нет локально
-        if (!token) {
-            handleAuthError();
-            return;
-        }
+        if (!token) return handleAuthError();
 
-        // Запрашиваем ключ карт (это заодно проверяет валидность токена на сервере)
-        const response = await fetch('/api/Config/map-key', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-
-        // ВАЖНО: Если сервер ответил 401 (Unauthorized) - сразу выходим
-        if (response.status === 401) {
-            console.warn("Токен невалиден (401). Редирект.");
-            handleAuthError();
-            return;
-        }
-
-        // Если другая ошибка сервера
-        if (!response.ok) {
-            console.error("Ошибка сервера:", response.status);
-            // Не показываем алерт, просто кидаем на логин, так безопаснее для UX
-            handleAuthError(); 
-            return;
-        }
+        const response = await fetch('/api/Config/map-key', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (response.status === 401) return handleAuthError();
         
         const data = await response.json();
         const apiKey = data.key || ''; 
 
-        // Грузим Яндекс Карты
         const script = document.createElement('script');
         script.src = `https://api-maps.yandex.ru/2.1/?apikey=${apiKey}&lang=ru_RU`;
         script.type = 'text/javascript';
-        
-        script.onload = () => {
-            ymaps.ready(init);
-        };
-        
-        script.onerror = () => {
-            console.error("Не удалось загрузить скрипт Яндекс.Карт");
-        };
-
+        script.onload = () => ymaps.ready(init);
         document.head.appendChild(script);
-
-    } catch (error) {
-        console.error('Critical Init Error:', error);
-        // Если упало по сети или другой причине - всё равно кидаем на логин
-        handleAuthError();
-    }
+    } catch (e) { handleAuthError(); }
 }
 
 function init() {
-    myMap = new ymaps.Map("map", {
-        center: [55.751574, 37.573856],
-        zoom: 7,
-        controls: ['zoomControl', 'fullscreenControl']
-    });
-
-    clusterer = new ymaps.Clusterer({
-        preset: 'islands#invertedVioletClusterIcons',
-        groupByCoordinates: false,
-        clusterDisableClickZoom: false,
-        clusterHideIconOnBalloonOpen: false,
-        geoObjectHideIconOnBalloonOpen: false
-    });
-
+    myMap = new ymaps.Map("map", { center: [55.751574, 37.573856], zoom: 7, controls: ['zoomControl', 'fullscreenControl'] });
+    clusterer = new ymaps.Clusterer({ preset: 'islands#invertedVioletClusterIcons', groupByCoordinates: false });
     myMap.geoObjects.add(clusterer);
 
     loadFactories();
 
-    // Новые обработчики
     document.getElementById('apply-filters-btn').addEventListener('click', applyFilters);
     document.getElementById('reset-filters-btn').addEventListener('click', resetFilters);
+    
+    // Живой поиск и фильтры
+    const inputs = ['search-input', 'factory-filter', 'category-filter', 'vip-filter', 'city-filter'];
+    inputs.forEach(id => document.getElementById(id).addEventListener('change', applyFilters));
+    document.getElementById('search-input').addEventListener('input', applyFilters);
 }
 
-// Загрузка всех заводов (немного изменена)
 async function loadFactories() {
-    try {
-        const token = localStorage.getItem('jwt_token');
-        const response = await fetch('/api/Factories', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        if (response.status === 401) return handleAuthError();
-
-        if (response.ok) {
-            allFactories = await response.json();
-            populateFilters(allFactories); // Заполняем фильтры
-            renderPins(allFactories); // Отрисовываем всё
-        }
-    } catch (error) { console.error("Ошибка загрузки данных:", error); }
+    const token = localStorage.getItem('jwt_token');
+    const response = await fetch('/api/Factories', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (response.status === 401) return handleAuthError();
+    if (response.ok) {
+        allFactories = await response.json();
+        populateFilters(allFactories);
+        renderPins(allFactories);
+    }
 }
 
-// НОВАЯ ФУНКЦИЯ: Заполнение фильтров
 function populateFilters(factories) {
-    const cityFilter = document.getElementById('city-filter');
-    const categoryFilter = document.getElementById('category-filter');
+    const factorySelect = document.getElementById('factory-filter');
+    const categorySelect = document.getElementById('category-filter');
+    const vipSelect = document.getElementById('vip-filter');
+    const citySelect = document.getElementById('city-filter');
 
-    const cities = new Set();
-    const categories = new Set();
+    const sets = {
+        factories: new Set(),
+        categories: new Set(),
+        vip: new Set(),
+        cities: new Set()
+    };
 
     factories.forEach(f => {
-        // Парсим город (первое слово до запятой)
+        if (f.name && f.name.trim()) sets.factories.add(f.name.trim());
+        
         if (f.address) {
-            const cityMatch = f.address.split(',')[0].trim();
-            if (cityMatch) cities.add(cityMatch);
+            const city = f.address.split(',')[0].trim();
+            // Фильтр городов: длиннее 2 букв, не начинается с цифры
+            if (city.length > 2 && isNaN(parseInt(city[0]))) sets.cities.add(city);
         }
-        // Парсим категории
-        if (f.productCategories) {
-            f.productCategories.split(',').forEach(cat => {
-                if(cat.trim()) categories.add(cat.trim());
+
+        // Функция очистки категорий
+        const addClean = (strList, targetSet) => {
+            if (!strList) return;
+            strList.split(',').forEach(item => {
+                const val = item.trim();
+                // ЖЕСТКИЙ ФИЛЬТР: Длина > 3 и НЕ начинается с цифры
+                // Это уберет "0 и 1", "18 м", "2 м" и пустые строки
+                if (val.length > 3 && isNaN(parseInt(val[0]))) {
+                    targetSet.add(val);
+                }
             });
-        }
+        };
+
+        addClean(f.productCategories, sets.categories);
+        addClean(f.vipProducts, sets.vip);
     });
 
-    cities.forEach(city => cityFilter.add(new Option(city, city)));
-    categories.forEach(cat => categoryFilter.add(new Option(cat, cat)));
+    // Сортировка и добавление
+    const fill = (select, set) => {
+        Array.from(set).sort().forEach(val => select.add(new Option(val, val)));
+    };
+
+    fill(factorySelect, sets.factories);
+    fill(categorySelect, sets.categories);
+    fill(vipSelect, sets.vip);
+    fill(citySelect, sets.cities);
 }
 
-// НОВАЯ ФУНКЦИЯ: Применение всех фильтров
 function applyFilters() {
-    const searchText = document.getElementById('search-input').value.toLowerCase();
-    const city = document.getElementById('city-filter').value;
-    const category = document.getElementById('category-filter').value;
+    const search = document.getElementById('search-input').value.toLowerCase().trim();
+    const factoryVal = document.getElementById('factory-filter').value;
+    const categoryVal = document.getElementById('category-filter').value;
+    const vipVal = document.getElementById('vip-filter').value;
+    const cityVal = document.getElementById('city-filter').value;
 
-    let filteredFactories = allFactories;
+    const chkName = document.getElementById('chk-name').checked;
+    const chkProd = document.getElementById('chk-prod').checked;
+    const chkPrice = document.getElementById('chk-price').checked;
 
-    // 1. Фильтр по городу
-    if (city) {
-        filteredFactories = filteredFactories.filter(f => f.address && f.address.startsWith(city));
-    }
-    // 2. Фильтр по категории
-    if (category) {
-        filteredFactories = filteredFactories.filter(f => f.productCategories && f.productCategories.includes(category));
-    }
-    // 3. Фильтр по поиску
-    if (searchText) {
-        filteredFactories = filteredFactories.filter(f => 
-            (f.name && f.name.toLowerCase().includes(searchText)) ||
-            (f.comment && f.comment.toLowerCase().includes(searchText)) ||
-            (f.productCategories && f.productCategories.toLowerCase().includes(searchText))
-        );
-    }
+    const filtered = allFactories.filter(f => {
+        if (factoryVal && f.name !== factoryVal) return false;
+        if (cityVal && (!f.address || !f.address.startsWith(cityVal))) return false;
+        if (categoryVal && (!f.productCategories || !f.productCategories.includes(categoryVal))) return false;
+        if (vipVal && (!f.vipProducts || !f.vipProducts.includes(vipVal))) return false;
 
-    renderPins(filteredFactories);
-}
+        if (search) {
+            let match = false;
+            if (chkName && f.name?.toLowerCase().includes(search)) match = true;
+            if (chkProd && (f.productCategories?.toLowerCase().includes(search) || f.vipProducts?.toLowerCase().includes(search))) match = true;
+            if (chkPrice && f.comment?.toLowerCase().includes(search)) match = true; // comment = Вся продукция
+            return match;
+        }
+        return true;
+    });
 
-// НОВАЯ ФУНКЦИЯ: Сброс фильтров
-function resetFilters() {
-    document.getElementById('search-input').value = "";
-    document.getElementById('city-filter').value = "";
-    document.getElementById('category-filter').value = "";
-    renderPins(allFactories); // Показываем снова все
+    renderPins(filtered);
 }
 
 function renderPins(factories) {
     clusterer.removeAll();
     const geoObjects = [];
-
-    factories.forEach(factory => {
-        if (!factory.latitude || !factory.longitude) return;
-
-        const iconColor = factory.isVip ? 'islands#redDotIcon' : 'islands#blueDotIcon';
-        const balloonContent = `
-            <div style="font-size: 14px; line-height: 1.5;">
-                <strong style="font-size: 16px;">${factory.name}</strong><br>
-                <hr style="margin: 5px 0; border: 0; border-top: 1px solid #eee;">
-                ${factory.isVip ? '<span style="color: red; font-weight: bold;">★ VIP Партнер</span><br>' : ''}
-                <b>Продукция:</b> ${factory.productCategories || 'Нет данных'}<br>
-                ${factory.phone ? `<b>Тел:</b> ${factory.phone}<br>` : ''}
-                ${factory.address ? `<b>Адрес:</b> ${factory.address}<br>` : ''}
-                ${factory.priceUrl ? `<br><a href="${factory.priceUrl}" target="_blank" style="color: #007bff">Перейти на сайт / Прайс</a>` : ''}
-                ${factory.comment ? `<br><br><small style="color: #666">${factory.comment}</small>` : ''}
-            </div>
-        `;
-
-        const placemark = new ymaps.Placemark(
-            [factory.latitude, factory.longitude], 
-            { balloonContent: balloonContent, hintContent: factory.name }, 
-            { preset: iconColor }
-        );
-
-        geoObjects.push(placemark);
+    factories.forEach(f => {
+        if (!f.latitude || !f.longitude) return;
+        const color = f.isVip ? 'islands#redDotIcon' : 'islands#blueDotIcon';
+        const content = `<b>${f.name}</b><br><br>Продукция: ${f.productCategories || '-'}<br>${f.priceUrl ? `<a href="${f.priceUrl}" target="_blank">Сайт</a>` : ''}`;
+        geoObjects.push(new ymaps.Placemark([f.latitude, f.longitude], { balloonContent: content }, { preset: color }));
     });
-
     clusterer.add(geoObjects);
-    
-    if (geoObjects.length > 0) {
-        myMap.setBounds(clusterer.getBounds(), { checkZoomRange: true });
-    }
+    if (geoObjects.length) myMap.setBounds(clusterer.getBounds(), { checkZoomRange: true });
+}
+
+function resetFilters() {
+    document.querySelectorAll('select').forEach(s => s.value = "");
+    document.getElementById('search-input').value = "";
+    renderPins(allFactories);
 }
 
 function handleAuthError() {
-    // Удаляем всё и редиректим. Никаких алертов!
     localStorage.removeItem('jwt_token');
-    localStorage.removeItem('user_role');
     window.location.href = 'login.html';
 }

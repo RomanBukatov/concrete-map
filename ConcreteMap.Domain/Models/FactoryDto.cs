@@ -11,4 +11,5 @@ public class FactoryDto
     public string? Phone { get; set; }
     public string? ProductCategories { get; set; }
     public string? PriceUrl { get; set; }
+    public string? VipProducts { get; set; }
 }

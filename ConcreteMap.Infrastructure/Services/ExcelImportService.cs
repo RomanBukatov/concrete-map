@@ -64,6 +64,7 @@ namespace ConcreteMap.Infrastructure.Services
                         Phone = worksheet.Cells[row, 4].Text?.Trim(),
                         Address = worksheet.Cells[row, 5].Text?.Trim(),
                         ProductCategories = worksheet.Cells[row, 6].Text?.Trim(),
+                        VipProducts = worksheet.Cells[row, 7].Text?.Trim(),
                         Comment = worksheet.Cells[row, 8].Text?.Trim(),
                         PriceUrl = CleanUrl(worksheet.Cells[row, 10].Text),
                         Latitude = ParseDouble(worksheet.Cells[row, 12].Text),

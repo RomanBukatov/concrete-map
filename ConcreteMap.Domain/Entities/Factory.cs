@@ -20,6 +20,7 @@ namespace ConcreteMap.Domain.Entities
         // Описательные поля (из Excel)
         public string? ProductCategories { get; set; } // "Основная продукция" (строка из экселя)
         public string? Comment { get; set; }           // Комментарий/Ассортимент
+        public string? VipProducts { get; set; }
 
         // Навигационное свойство (связь 1-ко-многим)
         public ICollection<Product> Products { get; set; } = new List<Product>();

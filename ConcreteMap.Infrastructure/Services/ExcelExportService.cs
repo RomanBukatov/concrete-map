@@ -49,7 +49,7 @@ namespace ConcreteMap.Infrastructure.Services
                 worksheet.Cells[row, 4].Value = f.Phone;
                 worksheet.Cells[row, 5].Value = f.Address;
                 worksheet.Cells[row, 6].Value = f.ProductCategories;
-                // 7 пропускаем
+                worksheet.Cells[row, 7].Value = f.VipProducts;
                 worksheet.Cells[row, 8].Value = f.Comment;
                 // 9 пропускаем
                 worksheet.Cells[row, 10].Value = f.PriceUrl;

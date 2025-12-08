@@ -34,6 +34,7 @@ namespace ConcreteMap.Api.Controllers
                     Address = f.Address,
                     Phone = f.Phone,
                     ProductCategories = f.ProductCategories,
+                    VipProducts = f.VipProducts,
                     PriceUrl = f.PriceUrl
                 })
                 .ToListAsync();
@@ -54,9 +55,10 @@ namespace ConcreteMap.Api.Controllers
 
             var factories = await _context.Factories
                 .AsNoTracking()
-                .Where(x => 
+                .Where(x =>
                     (x.Name != null && EF.Functions.ILike(x.Name, term)) ||
                     (x.ProductCategories != null && EF.Functions.ILike(x.ProductCategories, term)) ||
+                    (x.VipProducts != null && EF.Functions.ILike(x.VipProducts, term)) ||
                     (x.Comment != null && EF.Functions.ILike(x.Comment, term))
                 )
                 .Select(f => new FactoryDto
@@ -69,6 +71,7 @@ namespace ConcreteMap.Api.Controllers
                     Address = f.Address,
                     Phone = f.Phone,
                     ProductCategories = f.ProductCategories,
+                    VipProducts = f.VipProducts,
                     PriceUrl = f.PriceUrl
                 })
                 .ToListAsync();

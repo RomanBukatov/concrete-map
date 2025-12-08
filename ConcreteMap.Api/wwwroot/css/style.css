@@ -1,82 +1,258 @@
-﻿/* Глобальные стили */
+﻿/* === 1. Глобальные настройки === */
 :root {
     --primary-color: #007bff;
     --primary-hover: #0056b3;
+    --danger-color: #dc3545;
+    --danger-hover: #c82333;
     --bg-color: #f4f7f6;
     --text-color: #333;
-    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+* {
+    box-sizing: border-box; /* Важно: чтобы padding не ломал ширину */
 }
 
 body, html {
-    margin: 0; padding: 0; width: 100%; height: 100%;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--bg-color); color: var(--text-color);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.5;
 }
-#map { width: 100%; height: 100vh; }
-.search-panel {
-    position: absolute; top: 20px; left: 20px; z-index: 2000;
-    background: white; padding: 15px; border-radius: 12px;
-    box-shadow: var(--card-shadow); display: flex; gap: 10px;
-}
-.btn {
-    padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;
-    font-weight: 600; transition: all 0.2s; font-size: 14px;
-}
-.btn-primary { background-color: var(--primary-color); color: white; }
-.btn-primary:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
-.btn-danger { background-color: #dc3545; color: white; }
-.btn-danger:hover { background-color: #c82333; }
-input[type="text"], input[type="password"], input[type="file"] {
-    padding: 10px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; transition: border 0.2s;
-}
-input:focus { border-color: var(--primary-color); }
-/* Login */
-.login-wrapper { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%); }
-.login-card { background: white; padding: 40px; border-radius: 16px; box-shadow: var(--card-shadow); width: 100%; max-width: 350px; text-align: center; }
-.login-card h2 { margin-bottom: 25px; color: var(--text-color); }
-.form-group { margin-bottom: 15px; }
-.form-group input { width: 100%; box-sizing: border-box; }
-.form-group button { width: 100%; margin-top: 10px; padding: 12px; }
-/* Admin */
-.admin-header { background: white; padding: 15px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-.admin-header h1 { margin: 0; font-size: 20px; color: var(--text-color); }
-.admin-container { max-width: 800px; margin: 0 auto; padding: 20px; }
-.upload-card { background: white; padding: 30px; border-radius: 12px; box-shadow: var(--card-shadow); text-align: center; }
-.upload-icon { font-size: 48px; color: var(--primary-color); margin-bottom: 20px; display: block; }
-.status-box { margin-top: 20px; font-weight: 500; }
 
-/* Кнопка входа на карте */
+/* === 2. Элементы интерфейса (Кнопки и Инпуты) === */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    height: 40px; /* Фиксированная высота для выравнивания */
+}
+
+.btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+.btn-primary:hover { background-color: var(--primary-hover); transform: translateY(-1px); }
+
+.btn-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+.btn-danger:hover { background-color: var(--danger-hover); transform: translateY(-1px); }
+
+/* Серые кнопки (Сбросить, Открыть карту) */
+.btn-secondary {
+    background-color: #e9ecef;
+    color: #333;
+}
+.btn-secondary:hover { background-color: #dde0e3; }
+
+input[type="text"], 
+input[type="password"],
+input[type="file"],
+select {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    width: 100%;
+    height: 40px; /* Одинаковая высота с кнопками */
+    background: white;
+    transition: border 0.2s;
+}
+
+input:focus, select:focus {
+    border-color: var(--primary-color);
+}
+
+/* === 3. Карта (index.html) === */
+#map {
+    width: 100%;
+    height: 100vh;
+}
+
+/* Панель фильтров */
+.controls-panel {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2000;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: var(--card-shadow);
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    max-width: 95%;
+    flex-wrap: wrap;
+}
+
+.search-group, .filter-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+}
+
+.controls-panel label {
+    font-size: 12px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #555;
+}
+
+.search-options {
+    margin-top: 5px;
+    font-size: 12px;
+    display: flex;
+    gap: 10px;
+}
+
+.button-group {
+    display: flex;
+    gap: 5px;
+}
+
+/* Кнопка Админки/Входа на карте */
 .map-admin-btn {
     position: absolute;
     top: 20px;
-    right: 60px; /* Справа */
-    z-index: 2000; /* Поверх карты */
+    right: 60px; /* Отступ от правого края, чтобы не перекрывать кнопки Яндекса */
+    z-index: 2000;
     background: white;
     padding: 10px 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* Тень как у поиска */
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
     text-decoration: none;
     color: #333;
     font-weight: 600;
     font-size: 14px;
+    height: 40px;
     display: flex;
     align-items: center;
-    gap: 8px;
+}
+.map-admin-btn:hover { color: var(--primary-color); }
+
+/* === 4. Страница Входа (login.html) === */
+.login-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 20px;
 }
 
-.map-admin-btn:hover {
-    color: var(--primary-color);
-    transform: translateY(-1px);
+.login-card {
+    background: white;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    width: 100%;
+    max-width: 400px; /* Чуть шире */
+    text-align: center;
 }
 
-.controls-panel {
-    position: absolute; top: 10px; left: 10px; z-index: 2000;
-    background: white; padding: 10px; border-radius: 8px; box-shadow: var(--card-shadow);
-    display: flex; align-items: flex-end; gap: 15px;
+.login-card h2 { margin-top: 0; margin-bottom: 25px; color: #333; }
+.form-group { margin-bottom: 20px; text-align: left; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 12px; }
+
+/* === 5. Админ-панель (admin.html) === */
+.admin-header {
+    background: white;
+    padding: 15px 30px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
 }
-.search-group, .filter-group, .button-group { display: flex; flex-direction: column; }
-.controls-panel label { font-size: 12px; font-weight: 600; margin-bottom: 5px; color: #555; }
-.controls-panel input, .controls-panel select { 
-    padding: 8px; border-radius: 4px; border: 1px solid #ccc; width: 200px; 
+
+.admin-header h1 {
+    margin: 0;
+    font-size: 22px;
+    color: #333;
 }
-.button-group { flex-direction: row; gap: 5px; }
+
+.admin-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px 40px;
+}
+
+.upload-card {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.upload-icon {
+    font-size: 40px;
+    display: block;
+    margin-bottom: 15px;
+}
+
+.upload-card h2 { margin: 0 0 10px; font-size: 20px; }
+.status-box { margin-top: 15px; font-weight: 500; font-size: 14px; min-height: 20px; }
+
+/* === 6. Мобильная адаптация === */
+@media (max-width: 768px) {
+    .controls-panel {
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 16px 16px 0 0;
+        flex-direction: column;
+        align-items: stretch;
+        max-height: 60vh;
+        overflow-y: auto;
+        padding: 20px;
+    }
+    
+    .button-group button { flex: 1; }
+    
+    /* Кнопка админки на мобилке уезжает вниз, чтобы не мешать */
+    .map-admin-btn {
+        top: 10px;
+        right: 10px;
+        padding: 8px 12px;
+    }
+
+    .admin-header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .admin-header div {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .admin-header .btn { width: 100%; }
+}
