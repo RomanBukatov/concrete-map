@@ -35,7 +35,8 @@ namespace ConcreteMap.Api.Controllers
                     Phone = f.Phone,
                     ProductCategories = f.ProductCategories,
                     VipProducts = f.VipProducts,
-                    PriceUrl = f.PriceUrl
+                    PriceUrl = f.PriceUrl,
+                    Comment = f.Comment
                 })
                 .ToListAsync();
 
@@ -72,7 +73,8 @@ namespace ConcreteMap.Api.Controllers
                     Phone = f.Phone,
                     ProductCategories = f.ProductCategories,
                     VipProducts = f.VipProducts,
-                    PriceUrl = f.PriceUrl
+                    PriceUrl = f.PriceUrl,
+                    Comment = f.Comment
                 })
                 .ToListAsync();
 

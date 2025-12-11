@@ -12,4 +12,5 @@ public class FactoryDto
     public string? ProductCategories { get; set; }
     public string? PriceUrl { get; set; }
     public string? VipProducts { get; set; }
+    public string? Comment { get; set; }
 }
