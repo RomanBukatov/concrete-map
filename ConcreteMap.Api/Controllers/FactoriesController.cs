@@ -35,15 +35,18 @@ namespace ConcreteMap.Api.Controllers
                     Phone = f.Phone,
                     ProductCategories = f.ProductCategories,
                     VipProducts = f.VipProducts,
-                    PriceUrl = f.PriceUrl,
-                    Comment = f.Comment
+                    PriceUrl = f.PriceUrl, // Ссылка на сайт
+                    Comment = f.Comment,
+                    
+                    // --- ВОТ ЭТО БЫЛО ПРОПУЩЕНО ---
+                    PriceListUrl = f.PriceListUrl 
                 })
                 .ToListAsync();
 
             return Ok(factories);
         }
 
-        // Поиск (новое)
+        // Поиск
         [HttpGet("search")]
         public async Task<ActionResult<List<FactoryDto>>> SearchFactories([FromQuery] string? q)
         {
@@ -60,7 +63,9 @@ namespace ConcreteMap.Api.Controllers
                     (x.Name != null && EF.Functions.ILike(x.Name, term)) ||
                     (x.ProductCategories != null && EF.Functions.ILike(x.ProductCategories, term)) ||
                     (x.VipProducts != null && EF.Functions.ILike(x.VipProducts, term)) ||
-                    (x.Comment != null && EF.Functions.ILike(x.Comment, term))
+                    (x.Comment != null && EF.Functions.ILike(x.Comment, term)) ||
+                    // Поиск по содержимому прайса
+                    (x.PriceListContent != null && EF.Functions.ILike(x.PriceListContent, term))
                 )
                 .Select(f => new FactoryDto
                 {
@@ -74,7 +79,10 @@ namespace ConcreteMap.Api.Controllers
                     ProductCategories = f.ProductCategories,
                     VipProducts = f.VipProducts,
                     PriceUrl = f.PriceUrl,
-                    Comment = f.Comment
+                    Comment = f.Comment,
+                    
+                    // --- И ЗДЕСЬ ТОЖЕ ---
+                    PriceListUrl = f.PriceListUrl
                 })
                 .ToListAsync();
 

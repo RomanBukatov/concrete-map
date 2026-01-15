@@ -111,5 +111,42 @@ namespace ConcreteMap.Infrastructure.Services
             var normalized = value.Replace(',', '.').Trim();
             return double.TryParse(normalized, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var result) ? result : 0;
         }
+
+        public string ExtractAllText(Stream fileStream)
+        {
+            try
+            {
+                // Не используем using, чтобы не закрыть поток, который нужен для S3
+                var package = new ExcelPackage(fileStream);
+                
+                if (package.Workbook.Worksheets.Count == 0) return "";
+
+                var sb = new System.Text.StringBuilder();
+                var worksheet = package.Workbook.Worksheets[0];
+
+                // Читаем все ячейки, где есть данные
+                var range = worksheet.Cells[worksheet.Dimension.Address];
+                
+                foreach (var cell in range)
+                {
+                    var text = cell.Text;
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        sb.Append(text).Append(" ");
+                    }
+                }
+
+                // Сбрасываем позицию потока в начало, это критично для последующей загрузки в S3!
+                fileStream.Position = 0;
+
+                return sb.ToString();
+            }
+            catch (Exception)
+            {
+                // Если не смогли прочитать (не Excel) - возвращаем пустую строку, не ломаем процесс
+                fileStream.Position = 0;
+                return "";
+            }
+        }
     }
 }

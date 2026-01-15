@@ -23,6 +23,7 @@ namespace ConcreteMap.Infrastructure.Data
             modelBuilder.Entity<Factory>().HasIndex(f => f.Name).HasMethod("gin").HasOperators("gin_trgm_ops");
             modelBuilder.Entity<Factory>().HasIndex(f => f.ProductCategories).HasMethod("gin").HasOperators("gin_trgm_ops");
             modelBuilder.Entity<Factory>().HasIndex(f => f.Comment).HasMethod("gin").HasOperators("gin_trgm_ops");
+            modelBuilder.Entity<Factory>().HasIndex(f => f.PriceListContent).HasMethod("gin").HasOperators("gin_trgm_ops");
             modelBuilder.Entity<Product>()
                 .HasIndex(p => p.Name)
                 .HasMethod("gin")

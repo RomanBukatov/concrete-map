@@ -64,6 +64,19 @@
                 <div id="pass-msg" style="text-align: center; margin-top: 10px; font-size: 14px;"></div>
             </div>
         </div>
+
+        <!-- 4. Управление прайсами -->
+        <div class="upload-card">
+            <span class="upload-icon">📑</span>
+            <h2 style="margin-top: 0;">Прайс-листы заводов</h2>
+            <p style="color: #666; margin-bottom: 20px;">Загрузите Excel-файл для конкретного завода</p>
+           
+            <input type="text" id="factory-search" placeholder="🔍 Найти завод..." style="margin-bottom: 15px;">
+           
+            <div id="factories-list" style="max-height: 400px; overflow-y: auto; text-align: left; border: 1px solid #eee; border-radius: 6px;">
+                <!-- Сюда JS будет рендерить список -->
+            </div>
+        </div>
     </div>
 
     <script>
@@ -80,6 +93,103 @@
             // Меняем заголовок
             document.getElementById('page-title').textContent = '👤 Личный кабинет';
         }
+
+        // Загрузка списка заводов для управления прайсами
+        async function loadFactoriesForAdmin() {
+            try {
+                const response = await fetch('/api/Factories', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!response.ok) throw new Error('Ошибка загрузки списка заводов');
+                const factories = await response.json();
+                renderFactoriesList(factories);
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        function renderFactoriesList(factories) {
+            const listDiv = document.getElementById('factories-list');
+            listDiv.innerHTML = '';
+            
+            factories.forEach(factory => {
+                const factoryDiv = document.createElement('div');
+                factoryDiv.style.padding = '10px';
+                factoryDiv.style.borderBottom = '1px solid #eee';
+                
+                const statusText = factory.priceListUrl ? '✅ Файл загружен' : '❌ Нет файла';
+                
+                factoryDiv.innerHTML = `
+                    <b>${factory.name}</b>
+                    <span id="status-${factory.id}">${statusText}</span>
+                    <br>
+                    <input type="file" id="file-${factory.id}" style="display:none" onchange="uploadPrice(${factory.id})">
+                    <button class="btn btn-sm btn-primary" onclick="document.getElementById('file-${factory.id}').click()">Загрузить</button>
+                    <button class="btn btn-sm btn-danger" onclick="deletePrice(${factory.id})">Удалить</button>
+                `;
+                
+                listDiv.appendChild(factoryDiv);
+            });
+        }
+
+        async function uploadPrice(factoryId) {
+            const fileInput = document.getElementById(`file-${factoryId}`);
+            const file = fileInput.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch(`/api/PriceList/${factoryId}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + token },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById(`status-${factoryId}`).textContent = '✅ Файл загружен';
+                    fileInput.value = '';
+                } else {
+                    throw new Error('Ошибка загрузки файла');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка загрузки файла');
+            }
+        }
+
+        async function deletePrice(factoryId) {
+            try {
+                const response = await fetch(`/api/PriceList/${factoryId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                
+                if (response.ok) {
+                    document.getElementById(`status-${factoryId}`).textContent = '❌ Нет файла';
+                } else {
+                    throw new Error('Ошибка удаления файла');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка удаления файла');
+            }
+        }
+
+        // Фильтрация списка заводов
+        document.getElementById('factory-search').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const factories = Array.from(document.querySelectorAll('#factories-list > div'));
+            factories.forEach(factoryDiv => {
+                const name = factoryDiv.querySelector('b').textContent.toLowerCase();
+                factoryDiv.style.display = name.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
+
+        // Загружаем список заводов при загрузке страницы
+        loadFactoriesForAdmin();
 
         // --- Обработчики событий ---
 

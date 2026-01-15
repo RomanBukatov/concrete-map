@@ -173,6 +173,8 @@ function renderPins(factories) {
 
                 ${f.priceUrl ? `<br><a href="${f.priceUrl}" target="_blank" style="color: #007bff; font-weight: bold;">Перейти на сайт / Прайс</a>` : ''}
 
+                ${f.priceListUrl ? `<br><button onclick="downloadPrice(${f.id})" class="btn-download" style="border:none; cursor:pointer; width:100%;">📥 Скачать Прайс-лист</button>` : ''}
+
                 ${f.comment ? `<br><br><small style="color: #666">Доп. инфо: ${f.comment}</small>` : ''}
             </div>
         `;
@@ -207,4 +209,33 @@ function resetFilters() {
 function handleAuthError() {
     localStorage.removeItem('jwt_token');
     window.location.href = 'login.html';
+}
+
+async function downloadPrice(id) {
+    const token = localStorage.getItem('jwt_token');
+    try {
+        const response = await fetch(`/api/PriceList/download/${id}`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+
+        if (response.ok) {
+            // Магия для скачивания файла из ответа fetch
+            const blob = await response.blob();
+            // Пытаемся достать имя файла из заголовка (или генерим сами)
+            const filename = `Price_Factory_${id}.xlsx`;
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } else {
+            alert("Не удалось скачать файл");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Ошибка сети");
+    }
 }

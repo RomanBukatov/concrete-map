@@ -22,6 +22,10 @@ namespace ConcreteMap.Domain.Entities
         public string? Comment { get; set; }           // Комментарий/Ассортимент
         public string? VipProducts { get; set; }
 
+        // Прайс-лист
+        public string? PriceListUrl { get; set; }      // Ссылка на файл в S3
+        public string? PriceListContent { get; set; } // Текст из файла для поиска
+
         // Навигационное свойство (связь 1-ко-многим)
         public ICollection<Product> Products { get; set; } = new List<Product>();
     }

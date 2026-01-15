@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using Amazon.S3;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
@@ -60,6 +61,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Key"]))
         };
     });
+
+var s3Config = new AmazonS3Config
+{
+    ServiceURL = builder.Configuration["S3Settings:ServiceUrl"],
+    ForcePathStyle = true
+};
+
+builder.Services.AddSingleton<IAmazonS3>(sp =>
+    new AmazonS3Client(
+        builder.Configuration["S3Settings:AccessKey"],
+        builder.Configuration["S3Settings:SecretKey"],
+        s3Config
+    ));
+
+builder.Services.AddScoped<S3Service>();
 
 var app = builder.Build();
 

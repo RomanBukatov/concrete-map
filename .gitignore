@@ -487,3 +487,5 @@ $RECYCLE.BIN/
 appsettings.Development.json
 
 README-CLIENT.md
+
+docker-compose.yml
