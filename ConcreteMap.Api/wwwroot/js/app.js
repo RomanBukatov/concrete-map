@@ -66,6 +66,10 @@ function init() {
     ['factory-filter', 'category-filter', 'vip-filter', 'city-filter'].forEach(id => {
         document.getElementById(id).addEventListener('change', performSearch);
     });
+
+    ['chk-name', 'chk-prod', 'chk-price'].forEach(id => {
+        document.getElementById(id).addEventListener('change', performSearch);
+    });
 }
 
 // 1. Загрузка всех данных (старт)
@@ -80,31 +84,42 @@ async function loadFactories() {
     }
 }
 
-// 2. ГЛАВНАЯ ЛОГИКА ПОИСКА (ГИБРИДНАЯ)
 async function performSearch() {
     const searchText = document.getElementById('search-input').value.trim();
     const token = localStorage.getItem('jwt_token');
     
-    let sourceData = allFactories; // По умолчанию берем всё, что есть локально
+    // Считываем галочки
+    const chkName = document.getElementById('chk-name').checked;
+    const chkProd = document.getElementById('chk-prod').checked;
+    const chkPrice = document.getElementById('chk-price').checked;
+    
+    let sourceData = allFactories; // По умолчанию (если поиск пустой)
 
-    // ЕСЛИ ЕСТЬ ТЕКСТ -> СПРАШИВАЕМ СЕРВЕР (так как только сервер видит содержимое файлов)
     if (searchText.length > 0) {
         try {
-            // Отправляем запрос на серверный поиск
-            const response = await fetch(`/api/Factories/search?q=${encodeURIComponent(searchText)}`, {
+            // Формируем URL с параметрами
+            const params = new URLSearchParams({
+                q: searchText,
+                searchName: chkName,
+                searchProd: chkProd,
+                searchPrice: chkPrice
+            });
+
+            const response = await fetch(`/api/Factories/search?${params.toString()}`, {
                 headers: { 'Authorization': 'Bearer ' + token }
             });
+            
             if (response.status === 401) return handleAuthError();
             if (response.ok) {
-                sourceData = await response.json(); // Сервер вернул только тех, у кого есть этот текст
+                sourceData = await response.json();
             }
         } catch (e) {
             console.error("Ошибка поиска на сервере", e);
-            return; // Не обновляем карту при ошибке
+            return;
         }
     }
 
-    // 3. ПРИМЕНЯЕМ ЛОКАЛЬНЫЕ ФИЛЬТРЫ (Город, Завод и т.д.) к результату
+    // Применяем локальные фильтры (Город, Завод) к результату поиска
     applyLocalFilters(sourceData);
 }
 

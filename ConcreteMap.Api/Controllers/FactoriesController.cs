@@ -46,9 +46,12 @@ namespace ConcreteMap.Api.Controllers
             return Ok(factories);
         }
 
-        // Поиск
         [HttpGet("search")]
-        public async Task<ActionResult<List<FactoryDto>>> SearchFactories([FromQuery] string? q)
+        public async Task<ActionResult<List<FactoryDto>>> SearchFactories(
+            [FromQuery] string? q, 
+            [FromQuery] bool searchName = true, 
+            [FromQuery] bool searchProd = true, 
+            [FromQuery] bool searchPrice = true)
         {
             if (string.IsNullOrWhiteSpace(q))
             {
@@ -57,16 +60,30 @@ namespace ConcreteMap.Api.Controllers
 
             var term = $"%{q.Trim()}%";
 
-            var factories = await _context.Factories
-                .AsNoTracking()
-                .Where(x =>
-                    (x.Name != null && EF.Functions.ILike(x.Name, term)) ||
+            // Если не выбрана ни одна галочка, ничего не ищем (или можно вернуть всё, но логичнее ничего)
+            if (!searchName && !searchProd && !searchPrice)
+            {
+                return Ok(new List<FactoryDto>());
+            }
+
+            var query = _context.Factories.AsNoTracking().AsQueryable();
+
+            // Динамическое построение условия OR
+            query = query.Where(x => 
+                (searchName && x.Name != null && EF.Functions.ILike(x.Name, term)) ||
+                
+                (searchProd && (
                     (x.ProductCategories != null && EF.Functions.ILike(x.ProductCategories, term)) ||
-                    (x.VipProducts != null && EF.Functions.ILike(x.VipProducts, term)) ||
+                    (x.VipProducts != null && EF.Functions.ILike(x.VipProducts, term))
+                )) ||
+                
+                (searchPrice && (
                     (x.Comment != null && EF.Functions.ILike(x.Comment, term)) ||
-                    // Поиск по содержимому прайса
                     (x.PriceListContent != null && EF.Functions.ILike(x.PriceListContent, term))
-                )
+                ))
+            );
+
+            var factories = await query
                 .Select(f => new FactoryDto
                 {
                     Id = f.Id,
@@ -80,8 +97,6 @@ namespace ConcreteMap.Api.Controllers
                     VipProducts = f.VipProducts,
                     PriceUrl = f.PriceUrl,
                     Comment = f.Comment,
-                    
-                    // --- И ЗДЕСЬ ТОЖЕ ---
                     PriceListUrl = f.PriceListUrl
                 })
                 .ToListAsync();
