@@ -27,9 +27,17 @@ async function startApp() {
 }
 
 function init() {
-    myMap = new ymaps.Map("map", { center: [55.751574, 37.573856], zoom: 7, controls: ['zoomControl', 'fullscreenControl'] });
+    myMap = new ymaps.Map("map", { center: [55.751574, 37.573856], zoom: 7, controls: ['zoomControl', 'fullscreenControl', 'searchControl'] });
     clusterer = new ymaps.Clusterer({ preset: 'islands#invertedVioletClusterIcons', groupByCoordinates: false });
     myMap.geoObjects.add(clusterer);
+
+    // Настройка поиска адресов
+    const searchControl = myMap.controls.get('searchControl');
+    searchControl.options.set({
+        noPlacemark: false,
+        placeholderContent: 'Поиск адреса (улица, город)...',
+        size: 'large'
+    });
 
     loadFactories(); // Загружаем все заводы изначально
 
