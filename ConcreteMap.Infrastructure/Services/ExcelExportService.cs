@@ -53,7 +53,7 @@ namespace ConcreteMap.Infrastructure.Services
                 worksheet.Cells[row, 8].Value = f.Comment;
                 // 9 пропускаем
                 worksheet.Cells[row, 10].Value = f.PriceUrl;
-                // 11 пропускаем
+                worksheet.Cells[row, 11].Value = f.PriceListUrl;
                 worksheet.Cells[row, 12].Value = f.Latitude;
                 worksheet.Cells[row, 13].Value = f.Longitude;
             }

@@ -27,17 +27,22 @@ async function startApp() {
 }
 
 function init() {
-    myMap = new ymaps.Map("map", { center: [55.751574, 37.573856], zoom: 7, controls: ['zoomControl', 'fullscreenControl', 'searchControl'] });
+    myMap = new ymaps.Map("map", { center: [55.751574, 37.573856], zoom: 7, controls: ['zoomControl', 'fullscreenControl'] });
     clusterer = new ymaps.Clusterer({ preset: 'islands#invertedVioletClusterIcons', groupByCoordinates: false });
     myMap.geoObjects.add(clusterer);
 
-    // Настройка поиска адресов
-    const searchControl = myMap.controls.get('searchControl');
-    searchControl.options.set({
-        noPlacemark: false,
-        placeholderContent: 'Поиск адреса (улица, город)...',
-        size: 'large'
+    // Добавляем поиск адресов (Геокодинг) вручную, чтобы задать позицию
+    var searchControl = new ymaps.control.SearchControl({
+        options: {
+            noPlacemark: false, // Ставить метку
+            placeholderContent: 'Адрес (улица, город)...',
+            size: 'large',
+            float: 'none', // Отключаем стандартное обтекание
+            position: { top: 80, right: 10 } // Сдвигаем вправо и вниз (под кнопку Админки)
+        }
     });
+
+    myMap.controls.add(searchControl);
 
     loadFactories(); // Загружаем все заводы изначально
 
@@ -77,6 +82,22 @@ function init() {
 
     ['chk-name', 'chk-prod', 'chk-price'].forEach(id => {
         document.getElementById(id).addEventListener('change', performSearch);
+    });
+
+    // Добавляем логику для новой кнопки #main-filter-toggle
+    const toggleBtn = document.getElementById('main-filter-toggle');
+
+    toggleBtn.addEventListener('click', () => {
+        panel.classList.toggle('hidden');
+        panel.classList.toggle('active');
+        // Меняем текст кнопки
+        if (panel.classList.contains('active')) {
+            toggleBtn.textContent = "✖ Скрыть фильтры";
+            toggleBtn.classList.replace('btn-primary', 'btn-secondary');
+        } else {
+            toggleBtn.textContent = "🔍 Поиск заводов";
+            toggleBtn.classList.replace('btn-secondary', 'btn-primary');
+        }
     });
 }
 

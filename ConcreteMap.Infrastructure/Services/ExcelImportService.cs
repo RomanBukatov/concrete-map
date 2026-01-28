@@ -67,6 +67,7 @@ namespace ConcreteMap.Infrastructure.Services
                         VipProducts = worksheet.Cells[row, 7].Text?.Trim(),
                         Comment = worksheet.Cells[row, 8].Text?.Trim(),
                         PriceUrl = CleanUrl(worksheet.Cells[row, 10].Text),
+                        PriceListUrl = CleanUrl(worksheet.Cells[row, 11].Text),
                         Latitude = ParseDouble(worksheet.Cells[row, 12].Text),
                         Longitude = ParseDouble(worksheet.Cells[row, 13].Text)
                     };

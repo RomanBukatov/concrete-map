@@ -92,8 +92,8 @@ input:focus, select:focus {
 /* Панель фильтров */
 .controls-panel {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 70px;
+    left: 20px;
     z-index: 2000;
     background: white;
     padding: 15px;
@@ -104,6 +104,20 @@ input:focus, select:focus {
     gap: 10px;
     max-width: 95%;
     flex-wrap: wrap;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none; /* Чтобы нельзя было кликнуть по скрытому */
+}
+
+/* Когда панель открыта - убираем скрытие */
+.controls-panel.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .search-group, .filter-group {
