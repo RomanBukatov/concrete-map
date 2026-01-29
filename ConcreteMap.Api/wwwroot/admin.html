@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Личный кабинет</title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=5.1">
 </head>
 <body>
     <header class="admin-header">
@@ -46,6 +46,8 @@
                 <button id="create-user-btn" class="btn btn-primary" style="width: 100%;">Создать</button>
                 <div id="user-msg" class="status-box"></div>
             </div>
+            <h3>Список сотрудников</h3>
+            <div id="users-list-container"></div>
         </div>
 
         <!-- 3. Смена пароля (Для всех) -->
@@ -191,6 +193,11 @@
         // Загружаем список заводов при загрузке страницы
         loadFactoriesForAdmin();
 
+        // Загружаем список пользователей при загрузке страницы (только для админа)
+        if (role === 'Admin') {
+            loadUsers();
+        }
+
         // --- Обработчики событий ---
 
         document.getElementById('logout-btn').addEventListener('click', () => {
@@ -301,6 +308,87 @@
             } catch (error) { msg.textContent = "Ошибка сети"; msg.style.color = "red"; } 
             finally { btn.disabled = false; }
         });
+
+        // Функция загрузки списка пользователей
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/auth/users', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (!response.ok) throw new Error('Ошибка загрузки списка пользователей');
+                const users = await response.json();
+                renderUsersList(users);
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        function renderUsersList(users) {
+            const container = document.getElementById('users-list-container');
+            container.innerHTML = '';
+
+            if (users.length === 0) {
+                container.innerHTML = '<p>Нет пользователей</p>';
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.style.width = '100%';
+            table.style.borderCollapse = 'collapse';
+            table.innerHTML = `
+                <thead>
+                    <tr style="background-color: #f8f9fa;">
+                        <th style="border: 1px solid #dee2e6; padding: 8px;">Логин</th>
+                        <th style="border: 1px solid #dee2e6; padding: 8px;">Роль</th>
+                        <th style="border: 1px solid #dee2e6; padding: 8px;">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            `;
+
+            const tbody = table.querySelector('tbody');
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="border: 1px solid #dee2e6; padding: 8px;">${user.username}</td>
+                    <td style="border: 1px solid #dee2e6; padding: 8px;">${user.role}</td>
+                    <td style="border: 1px solid #dee2e6; padding: 8px;">
+                        <button class="btn btn-sm btn-warning" onclick="resetUserPassword('${user.username}')">Сбросить пароль</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            container.appendChild(table);
+        }
+
+        // Функция сброса пароля пользователя
+        async function resetUserPassword(username) {
+            const newPassword = prompt(`Введите новый пароль для пользователя ${username}:`, '123456');
+            if (!newPassword) return;
+
+            try {
+                const response = await fetch('/api/auth/admin-reset-password', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username: username, newPassword: newPassword })
+                });
+
+                if (response.ok) {
+                    alert(`Пароль для пользователя ${username} успешно сброшен!`);
+                } else {
+                    const error = await response.text();
+                    alert(`Ошибка: ${error}`);
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка сети');
+            }
+        }
 
         function logout() {
             localStorage.removeItem('jwt_token'); localStorage.removeItem('user_role'); window.location.href = 'login.html';

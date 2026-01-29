@@ -60,5 +60,35 @@ namespace ConcreteMap.Api.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("users")]
+        public async Task<IActionResult> GetUsers()
+        {
+            try
+            {
+                var users = await _authService.GetAllUsersAsync();
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("admin-reset-password")]
+        public async Task<IActionResult> AdminResetPassword([FromBody] AdminResetPasswordDto dto)
+        {
+            try
+            {
+                await _authService.AdminResetPasswordAsync(dto.Username, dto.NewPassword);
+                return Ok("Пароль успешно сброшен");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

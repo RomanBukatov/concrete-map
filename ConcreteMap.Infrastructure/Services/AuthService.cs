@@ -8,6 +8,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using BCrypt.Net;
+using System.Collections.Generic;
 
 namespace ConcreteMap.Infrastructure.Services;
 
@@ -71,6 +72,30 @@ public class AuthService
 
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task AdminResetPasswordAsync(string username, string newPassword)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        if (user == null)
+            throw new Exception("Пользователь не найден");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<List<UserDto>> GetAllUsersAsync()
+    {
+        var users = await _context.Users
+            .Select(u => new UserDto
+            {
+                Id = u.Id,
+                Username = u.Username,
+                Role = u.Role
+            })
+            .ToListAsync();
+
+        return users;
     }
 
     private string GenerateToken(User user)
