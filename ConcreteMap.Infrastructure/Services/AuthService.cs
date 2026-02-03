@@ -98,6 +98,21 @@ public class AuthService
         return users;
     }
 
+    public async Task EmergencyResetAsync(EmergencyResetDto dto)
+    {
+        // Сверяем ключ с конфигом
+        var validKey = _configuration["Auth:EmergencyKey"];
+        if (string.IsNullOrEmpty(validKey) || dto.EmergencyKey != validKey)
+            throw new Exception("Неверный ключ восстановления");
+
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == dto.Username);
+        if (user == null) throw new Exception("Пользователь не найден");
+
+        // Меняем пароль
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        await _context.SaveChangesAsync();
+    }
+
     private string GenerateToken(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]));

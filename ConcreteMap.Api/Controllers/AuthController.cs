@@ -90,5 +90,20 @@ namespace ConcreteMap.Api.Controllers
                 return BadRequest(ex.Message);
             }
         }
+
+        [HttpPost("emergency-reset")]
+        [AllowAnonymous]
+        public async Task<IActionResult> EmergencyReset([FromBody] EmergencyResetDto dto)
+        {
+            try
+            {
+                await _authService.EmergencyResetAsync(dto);
+                return Ok(new { message = "Пароль успешно сброшен. Войдите с новым паролем." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

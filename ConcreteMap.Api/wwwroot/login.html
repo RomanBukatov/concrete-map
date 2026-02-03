@@ -6,24 +6,62 @@
     <title>Вход в систему</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .hidden-form { display: none; }
+        .link-btn { 
+            background: none; border: none; color: #007bff; cursor: pointer; 
+            text-decoration: underline; font-size: 12px; margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
     <div class="login-wrapper">
         <div class="login-card">
-            <h2>🔐 Вход</h2>
-            <div class="form-group"><input type="text" id="username" placeholder="Логин"></div>
-            <div class="form-group"><input type="password" id="password" placeholder="Пароль"></div>
-            <div class="form-group"><button id="login-btn" class="btn btn-primary">Войти</button></div>
+            
+            <!-- ФОРМА ВХОДА -->
+            <div id="login-form">
+                <h2>🔐 Вход</h2>
+                <div class="form-group"><input type="text" id="username" placeholder="Логин"></div>
+                <div class="form-group"><input type="password" id="password" placeholder="Пароль"></div>
+                <div class="form-group"><button id="login-btn" class="btn btn-primary" style="width:100%">Войти</button></div>
+                <button class="link-btn" onclick="toggleMode()">Забыли пароль? (Аварийный сброс)</button>
+            </div>
+
+            <!-- ФОРМА СБРОСА -->
+            <div id="reset-form" class="hidden-form">
+                <h2 style="color: #dc3545;">🆘 Сброс доступа</h2>
+                <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Введите логин и секретный ключ восстановления</p>
+                
+                <div class="form-group"><input type="text" id="reset-username" placeholder="Логин (например, admin)"></div>
+                <div class="form-group"><input type="text" id="reset-key" placeholder="Секретный ключ"></div>
+                <div class="form-group"><input type="password" id="reset-new-pass" placeholder="Новый пароль"></div>
+                
+                <div class="form-group"><button id="reset-btn" class="btn btn-danger" style="width:100%">Сбросить пароль</button></div>
+                <button class="link-btn" onclick="toggleMode()">← Вернуться ко входу</button>
+            </div>
+
             <p id="error-msg" style="color: #dc3545; margin-top: 15px; font-size: 14px; min-height: 20px;"></p>
+            <p id="success-msg" style="color: #28a745; margin-top: 15px; font-size: 14px; min-height: 20px;"></p>
         </div>
     </div>
+
     <script>
+        function toggleMode() {
+            document.getElementById('login-form').classList.toggle('hidden-form');
+            document.getElementById('reset-form').classList.toggle('hidden-form');
+            document.getElementById('error-msg').textContent = '';
+            document.getElementById('success-msg').textContent = '';
+        }
+
+        // Логика ВХОДА
         document.getElementById('login-btn').addEventListener('click', async () => {
             const btn = document.getElementById('login-btn');
             const errorMsg = document.getElementById('error-msg');
-            btn.disabled = true; btn.textContent = "Вход..."; errorMsg.textContent = "";
+            btn.disabled = true; errorMsg.textContent = "";
+            
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
+
             try {
                 const response = await fetch('/api/auth/login', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -32,16 +70,49 @@
                 if (response.ok) {
                     const data = await response.json();
                     localStorage.setItem('jwt_token', data.token);
-                    localStorage.setItem('user_role', data.role); // Сохраняем роль!
+                    localStorage.setItem('user_role', data.role);
                     window.location.href = 'index.html';
                 } else {
                     const errorData = await response.json();
-                    errorMsg.textContent = errorData.message || 'Неверный логин или пароль';
-                    btn.disabled = false; btn.textContent = "Войти";
+                    errorMsg.textContent = errorData.message || 'Ошибка входа';
                 }
-            } catch (error) { errorMsg.textContent = 'Ошибка сети'; btn.disabled = false; btn.textContent = "Войти"; }
+            } catch (error) { errorMsg.textContent = 'Ошибка сети'; } 
+            finally { btn.disabled = false; }
         });
-        document.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('login-btn').click(); });
+
+        // Логика СБРОСА
+        document.getElementById('reset-btn').addEventListener('click', async () => {
+            const btn = document.getElementById('reset-btn');
+            const errorMsg = document.getElementById('error-msg');
+            const successMsg = document.getElementById('success-msg');
+            
+            btn.disabled = true; errorMsg.textContent = ""; successMsg.textContent = "";
+
+            const username = document.getElementById('reset-username').value;
+            const key = document.getElementById('reset-key').value;
+            const newPassword = document.getElementById('reset-new-pass').value;
+
+            if(!username || !key || !newPassword) {
+                errorMsg.textContent = "Заполните все поля";
+                btn.disabled = false; return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/emergency-reset', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, emergencyKey: key, newPassword })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    successMsg.textContent = data.message;
+                    setTimeout(() => toggleMode(), 2000); // Возврат ко входу через 2 сек
+                } else {
+                    errorMsg.textContent = data.message || 'Ошибка сброса';
+                }
+            } catch (error) { errorMsg.textContent = 'Ошибка сети'; } 
+            finally { btn.disabled = false; }
+        });
     </script>
 </body>
 </html>
